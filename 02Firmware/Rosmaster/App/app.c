@@ -5,5 +5,11 @@
 
 void App_Init()
 {
-
+	//Wifi_UserInit();
 }
+
+void App_heartbreak()
+{
+	printk("heartbreak");
+}
+

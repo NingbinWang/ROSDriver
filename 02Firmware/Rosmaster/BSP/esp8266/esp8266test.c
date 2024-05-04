@@ -8,7 +8,7 @@ void	Wifi_UserInit(void)
    Wifi_SetMode(WifiMode_Station);
   //Wifi_SetMode(WifiMode_SoftAp);
 
-  while (Wifi_Station_ConnectToAp("Kingios","wangningbin",NULL) == false);
+  while (Wifi_Station_ConnectToAp("KingHome","18896963287",NULL) == false);
 
 
 }

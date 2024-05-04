@@ -8,7 +8,7 @@
 
 #define		_WIFI_USART									huart2
 #define		_WIFI_RX_SIZE								512
-#define		_WIFI_RX_FOR_DATA_SIZE			1024
+#define		_WIFI_RX_FOR_DATA_SIZE			            1024
 #define		_WIFI_TX_SIZE								256
 
 
