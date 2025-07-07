@@ -474,7 +474,7 @@ bool	Wifi_SetRfPower(uint8_t Power_0_to_82)
  */
 bool	Wifi_SetMode(WIFIMODE_E	WifiMode_)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
+	//osSemaphoreWait(WifiSemHandle,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do

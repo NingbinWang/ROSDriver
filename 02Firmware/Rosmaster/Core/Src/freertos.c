@@ -118,7 +118,7 @@ void StartMainTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  CAN1_printf("12345678");
+	  //CAN_printf("12345678");
       osDelay(1);
   }
   /* USER CODE END StartMainTask */
