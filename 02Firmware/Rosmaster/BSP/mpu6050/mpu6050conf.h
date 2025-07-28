@@ -10,4 +10,6 @@
 
 #define MPU6050_ENABLE 1
 
+#define MPU6050_I2C_PORT        hi2c1
+
 #endif /* MPU6050CONF_H_ */

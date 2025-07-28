@@ -154,7 +154,7 @@ void StartIMUTask(void const * argument)
   for(;;)
   {
 	  MPU6050_Read_All(&hi2c1,&data);
-	  printf("x:%d y:%d z:%d gx:%d,gy:%d,gz:%d\r\n",data.Accel_X_RAW,data.Accel_Y_RAW,data.Accel_Z_RAW,data.Gyro_X_RAW,data.Gyro_Y_RAW,data.Gyro_Z_RAW);
+	  printf("x:%f y:%f z:%f gx:%f,gy:%f,gz:%f pitch:%f roll:%f\r\n",data.Ax,data.Ay,data.Az,data.Gx,data.Gy,data.Gz,data.KalmanAngleX,data.KalmanAngleY);
     osDelay(1);
   }
   /* USER CODE END StartIMUTask */

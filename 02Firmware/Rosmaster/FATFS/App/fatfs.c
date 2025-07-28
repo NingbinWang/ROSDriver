@@ -34,6 +34,25 @@ void MX_FATFS_Init(void)
 
   /* USER CODE BEGIN Init */
   /* additional user code for init */
+  if(retSD != 0) return FR_NOT_READY;
+
+     // 挂载文件系统
+   FRESULT res = f_mount(&fs, path, 1);
+   if(res != FR_OK) return res;
+
+     // 获取SD卡信息
+   DWORD free_clusters, total_sectors, free_sectors;
+   FATFS* fs_ptr;
+
+   res = f_getfree(path, &free_clusters, &fs_ptr);
+   if(res != FR_OK) return res;
+
+     // 计算容量信息
+   total_sectors = (fs_ptr->n_fatent - 2) * fs_ptr->csize;
+   free_sectors = free_clusters * fs_ptr->csize;
+
+     printf("total size : %.2f MB\r\n", (total_sectors / 2) / 1024.0);
+     printf("free size: %.2f MB\r\n", (free_sectors / 2) / 1024.0);
   /* USER CODE END Init */
 }
 
