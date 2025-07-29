@@ -7,6 +7,8 @@
 
 #ifndef MOTOR_GM37HALLENCODER_H_
 #define MOTOR_GM37HALLENCODER_H_
+#include "motorconf.h"
+#if MOTORGM37_ENABLE
 #include <stdint.h>
 #include "tim.h"
 typedef struct
@@ -33,3 +35,4 @@ void MotorGM37_Hallencoder_Start();
 
 #define   REDUCTION_RATIO    30//电机减速比
 #endif /* MOTOR_GM37HALL_H_ */
+#endif

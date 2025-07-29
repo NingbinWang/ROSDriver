@@ -57,16 +57,58 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define BIN1_Pin GPIO_PIN_1
-#define BIN1_GPIO_Port GPIOA
-#define BIN2_Pin GPIO_PIN_4
-#define BIN2_GPIO_Port GPIOA
-#define AIN2_Pin GPIO_PIN_7
-#define AIN2_GPIO_Port GPIOE
-#define AIN1_Pin GPIO_PIN_8
-#define AIN1_GPIO_Port GPIOE
-#define flash_cs_Pin GPIO_PIN_15
-#define flash_cs_GPIO_Port GPIOE
+#define TRIG_Pin GPIO_PIN_0
+#define TRIG_GPIO_Port GPIOC
+#define ECHO_Pin GPIO_PIN_1
+#define ECHO_GPIO_Port GPIOC
+#define PWMA_Pin GPIO_PIN_0
+#define PWMA_GPIO_Port GPIOA
+#define REDLED_Pin GPIO_PIN_1
+#define REDLED_GPIO_Port GPIOA
+#define KEY2_Pin GPIO_PIN_4
+#define KEY2_GPIO_Port GPIOA
+#define PWR_ADC_Pin GPIO_PIN_4
+#define PWR_ADC_GPIO_Port GPIOC
+#define AIN1_Pin GPIO_PIN_5
+#define AIN1_GPIO_Port GPIOC
+#define AIN2_Pin GPIO_PIN_2
+#define AIN2_GPIO_Port GPIOB
+#define BIN1_Pin GPIO_PIN_7
+#define BIN1_GPIO_Port GPIOE
+#define BIN2_Pin GPIO_PIN_8
+#define BIN2_GPIO_Port GPIOE
+#define PWMB_Pin GPIO_PIN_9
+#define PWMB_GPIO_Port GPIOE
+#define VGA_LED_Pin GPIO_PIN_10
+#define VGA_LED_GPIO_Port GPIOE
+#define VGA_DC_Pin GPIO_PIN_11
+#define VGA_DC_GPIO_Port GPIOE
+#define VGA_RESET_Pin GPIO_PIN_12
+#define VGA_RESET_GPIO_Port GPIOE
+#define VGA_CS_Pin GPIO_PIN_13
+#define VGA_CS_GPIO_Port GPIOE
+#define GREEDLED_Pin GPIO_PIN_14
+#define GREEDLED_GPIO_Port GPIOE
+#define FLASH_CS_Pin GPIO_PIN_15
+#define FLASH_CS_GPIO_Port GPIOE
+#define E1A_Pin GPIO_PIN_14
+#define E1A_GPIO_Port GPIOB
+#define E1B_Pin GPIO_PIN_15
+#define E1B_GPIO_Port GPIOB
+#define E2A_Pin GPIO_PIN_6
+#define E2A_GPIO_Port GPIOC
+#define E2B_Pin GPIO_PIN_7
+#define E2B_GPIO_Port GPIOC
+#define KEY1_Pin GPIO_PIN_15
+#define KEY1_GPIO_Port GPIOA
+#define STBY_Pin GPIO_PIN_3
+#define STBY_GPIO_Port GPIOD
+#define NRF_CS_Pin GPIO_PIN_5
+#define NRF_CS_GPIO_Port GPIOD
+#define NRF_CE_Pin GPIO_PIN_6
+#define NRF_CE_GPIO_Port GPIOD
+#define NRF_IRQ_Pin GPIO_PIN_7
+#define NRF_IRQ_GPIO_Port GPIOD
 
 /* USER CODE BEGIN Private defines */
 

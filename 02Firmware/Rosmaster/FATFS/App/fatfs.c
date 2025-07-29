@@ -34,6 +34,7 @@ void MX_FATFS_Init(void)
 
   /* USER CODE BEGIN Init */
   /* additional user code for init */
+ /*
   if(retSD != 0) return FR_NOT_READY;
 
      // 挂载文件系统
@@ -53,6 +54,7 @@ void MX_FATFS_Init(void)
 
      printf("total size : %.2f MB\r\n", (total_sectors / 2) / 1024.0);
      printf("free size: %.2f MB\r\n", (free_sectors / 2) / 1024.0);
+     */
   /* USER CODE END Init */
 }
 

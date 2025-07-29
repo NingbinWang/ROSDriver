@@ -84,8 +84,10 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-	while (MPU6050_Init(&hi2c1) == 1);
 	App_Init();
+	App_Func();
+	//while (MPU6050_Init(&hi2c1) == 1);
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -133,8 +135,8 @@ void StartMainTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  //CAN_printf("12345678");
-      osDelay(1);
+	     osDelay(50);
+	     App_Func();
   }
   /* USER CODE END StartMainTask */
 }
@@ -153,9 +155,9 @@ void StartIMUTask(void const * argument)
   MPU6050_t data;
   for(;;)
   {
-	  MPU6050_Read_All(&hi2c1,&data);
-	  printf("x:%f y:%f z:%f gx:%f,gy:%f,gz:%f pitch:%f roll:%f\r\n",data.Ax,data.Ay,data.Az,data.Gx,data.Gy,data.Gz,data.KalmanAngleX,data.KalmanAngleY);
-    osDelay(1);
+	 // MPU6050_Read_All(&hi2c1,&data);
+	  //printf("x:%f y:%f z:%f gx:%f,gy:%f,gz:%f pitch:%f roll:%f\r\n",data.Ax,data.Ay,data.Az,data.Gx,data.Gy,data.Gz,data.KalmanAngleX,data.KalmanAngleY);
+    osDelay(1000);
   }
   /* USER CODE END StartIMUTask */
 }
