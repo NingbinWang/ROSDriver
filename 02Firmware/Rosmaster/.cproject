@@ -68,20 +68,24 @@
 									<listOptionValue builtIn="false" value="../Lib/lvgl"/>
 									<listOptionValue builtIn="false" value="../Lib/lvgl/src"/>
 									<listOptionValue builtIn="false" value="../BSP/mpu6050"/>
-									<listOptionValue builtIn="false" value="../App/Inc"/>
 									<listOptionValue builtIn="false" value="../BSP/esp8266"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FreeRTOS/Source/include"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F"/>
 									<listOptionValue builtIn="false" value="../BSP/canwork"/>
 									<listOptionValue builtIn="false" value="../Lib/nmea_decode/include"/>
 									<listOptionValue builtIn="false" value="../BSP/gps"/>
-									<listOptionValue builtIn="false" value="../BSP/sdio_sdcard"/>
 									<listOptionValue builtIn="false" value="../FATFS/Target"/>
 									<listOptionValue builtIn="false" value="../FATFS/App"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FatFs/src"/>
 									<listOptionValue builtIn="false" value="../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS"/>
 									<listOptionValue builtIn="false" value="../BSP/motor"/>
 									<listOptionValue builtIn="false" value="../BSP/ssd1306"/>
+									<listOptionValue builtIn="false" value="../App/Algo/include"/>
+									<listOptionValue builtIn="false" value="../App/Inc"/>
+									<listOptionValue builtIn="false" value="../BSP/key"/>
+									<listOptionValue builtIn="false" value="../BSP/led"/>
+									<listOptionValue builtIn="false" value="../BSP/power"/>
+									<listOptionValue builtIn="false" value="../BSP/nrf24l01"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.571181182" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>

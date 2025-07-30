@@ -50,6 +50,9 @@
 /* USER CODE END Variables */
 osThreadId MainTaskHandle;
 osThreadId IMUTaskHandle;
+osThreadId ShowTaskHandle;
+osThreadId ControlTaskHandle;
+osThreadId DataTaskHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -58,6 +61,9 @@ osThreadId IMUTaskHandle;
 
 void StartMainTask(void const * argument);
 void StartIMUTask(void const * argument);
+void StartShowTask(void const * argument);
+void StartControlTask(void const * argument);
+void StartDataTask(void const * argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -108,12 +114,24 @@ void MX_FREERTOS_Init(void) {
 
   /* Create the thread(s) */
   /* definition and creation of MainTask */
-  osThreadDef(MainTask, StartMainTask, osPriorityNormal, 0, 128);
+  osThreadDef(MainTask, StartMainTask, osPriorityNormal, 0, 512);
   MainTaskHandle = osThreadCreate(osThread(MainTask), NULL);
 
   /* definition and creation of IMUTask */
   osThreadDef(IMUTask, StartIMUTask, osPriorityNormal, 0, 256);
   IMUTaskHandle = osThreadCreate(osThread(IMUTask), NULL);
+
+  /* definition and creation of ShowTask */
+  osThreadDef(ShowTask, StartShowTask, osPriorityBelowNormal, 0, 512);
+  ShowTaskHandle = osThreadCreate(osThread(ShowTask), NULL);
+
+  /* definition and creation of ControlTask */
+  osThreadDef(ControlTask, StartControlTask, osPriorityBelowNormal, 0, 512);
+  ControlTaskHandle = osThreadCreate(osThread(ControlTask), NULL);
+
+  /* definition and creation of DataTask */
+  osThreadDef(DataTask, StartDataTask, osPriorityNormal, 0, 512);
+  DataTaskHandle = osThreadCreate(osThread(DataTask), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -135,7 +153,7 @@ void StartMainTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	     osDelay(50);
+	     osDelay(100);
 	     App_Func();
   }
   /* USER CODE END StartMainTask */
@@ -160,6 +178,60 @@ void StartIMUTask(void const * argument)
     osDelay(1000);
   }
   /* USER CODE END StartIMUTask */
+}
+
+/* USER CODE BEGIN Header_StartShowTask */
+/**
+* @brief Function implementing the ShowTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartShowTask */
+void StartShowTask(void const * argument)
+{
+  /* USER CODE BEGIN StartShowTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(2000);
+  }
+  /* USER CODE END StartShowTask */
+}
+
+/* USER CODE BEGIN Header_StartControlTask */
+/**
+* @brief Function implementing the ControlTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartControlTask */
+void StartControlTask(void const * argument)
+{
+  /* USER CODE BEGIN StartControlTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(3000);
+  }
+  /* USER CODE END StartControlTask */
+}
+
+/* USER CODE BEGIN Header_StartDataTask */
+/**
+* @brief Function implementing the DataTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartDataTask */
+void StartDataTask(void const * argument)
+{
+  /* USER CODE BEGIN StartDataTask */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(4000);
+  }
+  /* USER CODE END StartDataTask */
 }
 
 /* Private application code --------------------------------------------------*/

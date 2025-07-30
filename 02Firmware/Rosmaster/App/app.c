@@ -16,10 +16,13 @@ void App_IMU_Init()
 
 void App_Init()
 {
+
 	MotorMC520APWMStart();
 	MotorMC520ASetSpeed(1, 1000);
 	MotorMC520BPWMStart();
 	MotorMC520BSetSpeed(1, 1000);
+	MotorAEncoderInit();
+	MotorBEncoderInit();
 #if SSD1306_ENABLE
 	ssd1306_Init();
 #endif
@@ -30,7 +33,7 @@ void App_Show()
 #if SSD1306_ENABLE
 	char showcount[256];
 	ssd1306_SetCursor(0,0);
-	sprintf(showcount,"speed %d %d",11,14);
+	sprintf(showcount,"speed %d %d",GetMotorAEncoder(),GetMotorBEncoder());
 	ssd1306_WriteString(showcount,Font_7x10,White);
 	ssd1306_UpdateScreen();
 #endif

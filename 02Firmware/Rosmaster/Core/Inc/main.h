@@ -61,8 +61,8 @@ void Error_Handler(void);
 #define TRIG_GPIO_Port GPIOC
 #define ECHO_Pin GPIO_PIN_1
 #define ECHO_GPIO_Port GPIOC
-#define PWMA_Pin GPIO_PIN_0
-#define PWMA_GPIO_Port GPIOA
+#define E1A_Pin GPIO_PIN_0
+#define E1A_GPIO_Port GPIOA
 #define REDLED_Pin GPIO_PIN_1
 #define REDLED_GPIO_Port GPIOA
 #define KEY2_Pin GPIO_PIN_4
@@ -91,12 +91,8 @@ void Error_Handler(void);
 #define GREEDLED_GPIO_Port GPIOE
 #define FLASH_CS_Pin GPIO_PIN_15
 #define FLASH_CS_GPIO_Port GPIOE
-#define E1A_Pin GPIO_PIN_14
-#define E1A_GPIO_Port GPIOB
-#define E1B_Pin GPIO_PIN_15
-#define E1B_GPIO_Port GPIOB
-#define E2A_Pin GPIO_PIN_6
-#define E2A_GPIO_Port GPIOC
+#define PWMA_Pin GPIO_PIN_6
+#define PWMA_GPIO_Port GPIOC
 #define E2B_Pin GPIO_PIN_7
 #define E2B_GPIO_Port GPIOC
 #define KEY1_Pin GPIO_PIN_15
@@ -109,6 +105,10 @@ void Error_Handler(void);
 #define NRF_CE_GPIO_Port GPIOD
 #define NRF_IRQ_Pin GPIO_PIN_7
 #define NRF_IRQ_GPIO_Port GPIOD
+#define E1B_Pin GPIO_PIN_3
+#define E1B_GPIO_Port GPIOB
+#define E2A_Pin GPIO_PIN_4
+#define E2A_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

@@ -10,6 +10,7 @@
 #include "motorconf.h"
 #if MOTORMC520_ENABLE
 #include "motor_mc520.h"
+#include "motor_mc520encoder.h"
 #elif MOTORGM37_ENABLE
 #include "motor_gm37.h"
 #endif
