@@ -5,8 +5,13 @@
  *      Author: Administrator
  */
 
-#ifndef LED_LED_H_
-#define LED_LED_H_
+#ifndef _LED_H_
+#define _LED_H_
+#include <stdint.h>
+#include "led_conf.h"
+#if LED_ENABLE
+
+#endif
 
 
 

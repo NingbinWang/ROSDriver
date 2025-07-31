@@ -26,7 +26,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "app.h"
-#include "mpu6050.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -91,9 +90,6 @@ void vApplicationGetIdleTaskMemory( StaticTask_t **ppxIdleTaskTCBBuffer, StackTy
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 	App_Init();
-	App_Func();
-	//while (MPU6050_Init(&hi2c1) == 1);
-
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -153,8 +149,8 @@ void StartMainTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	     osDelay(100);
-	     App_Func();
+  		App_Balance_Task();
+	    osDelay(5);
   }
   /* USER CODE END StartMainTask */
 }
@@ -170,12 +166,11 @@ void StartIMUTask(void const * argument)
 {
   /* USER CODE BEGIN StartIMUTask */
   /* Infinite loop */
-  MPU6050_t data;
+
   for(;;)
   {
-	 // MPU6050_Read_All(&hi2c1,&data);
-	  //printf("x:%f y:%f z:%f gx:%f,gy:%f,gz:%f pitch:%f roll:%f\r\n",data.Ax,data.Ay,data.Az,data.Gx,data.Gy,data.Gz,data.KalmanAngleX,data.KalmanAngleY);
-    osDelay(1000);
+	App_IMU_Task();
+    osDelay(1);
   }
   /* USER CODE END StartIMUTask */
 }
@@ -193,7 +188,8 @@ void StartShowTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(2000);
+  	App_Show_Task();
+    osDelay(100);
   }
   /* USER CODE END StartShowTask */
 }
@@ -211,7 +207,8 @@ void StartControlTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(3000);
+  	 App_Control_Task();
+     osDelay(5);
   }
   /* USER CODE END StartControlTask */
 }
@@ -229,7 +226,8 @@ void StartDataTask(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(4000);
+  	App_Data_Task();
+    osDelay(10);
   }
   /* USER CODE END StartDataTask */
 }

@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include "config.h"
-#include <stdint.h>
-static uint8_t uart_db_flag_rx_ok = 0; //接收成功标志
-static uint8_t uart_db_rx_con=0;       //接收计数器
-static uint8_t uart_db_rx_checksum;    //帧头部分校验和
-static uint8_t uart_db_rx_buf[40];     //接收缓冲，数据内容小于等于32Byte
-static uint8_t uart_db_tx_buf[40];     //发送缓冲
 
+#if AX_PROTOCOL_ENABEL
+#include "ax_protocol.h"
+
+#define MAX_PROTOCOL_LEN 40
+#define AX_PROTOCOL_ERR -1
+#define AX_PROTOCOL_OK 0
 /**
   * @简  述  UART 发送数据（X-Protocol协议）
   * @参  数  *pbuf：发送数据指针
@@ -14,44 +14,38 @@ static uint8_t uart_db_tx_buf[40];     //发送缓冲
   *          num：帧号，帧编码
   * @返回值	 无
   */
-void AX_UART_DB_SendPacket(uint8_t *pbuf, uint8_t len, uint8_t num)
+int AX_Protocol_SendPacket(uint8_t *pbuf, uint8_t len, uint8_t num)
 {
 	uint8_t i,cnt;
-  uint8_t tx_checksum = 0;//发送校验和
-
-	if(len <= 32)
+ 	uint8_t tx_checksum = 0;//发送校验和
+ 	uint8_t axprotocolbuf[MAX_PROTOCOL_LEN];
+	if(len > 32)
+		return AX_PROTOCOL_ERR;
+	//获取数
+	axprotocolbuf[0] = 0xAA;    //帧头
+	axprotocolbuf[1] = 0x55;    //
+	axprotocolbuf[2] = len+5;  //根据输出长度计算帧长度
+	axprotocolbuf[3] = num;    //帧编码
+	for(i=0; i<len; i++)
 	{
-		/******获取数据******/
-		uart_db_tx_buf[0] = 0xAA;    //帧头
-		uart_db_tx_buf[1] = 0x55;    //
-		uart_db_tx_buf[2] = len+5;  //根据输出长度计算帧长度
-		uart_db_tx_buf[3] = num;    //帧编码
-
-		for(i=0; i<len; i++)
-		{
-			uart_db_tx_buf[4+i] = *(pbuf+i);
-		}
-
-		/******计算校验和******/
-		cnt = 4+len;
-		for(i=0; i<cnt; i++)
-		{
-			tx_checksum = tx_checksum + uart_db_tx_buf[i];
-		}
-		uart_db_tx_buf[i] = tx_checksum;
-
-
-		/******发送数据******/
-		cnt = 5+len;
-
-		//查询传输方式
-		for(i=0; i<cnt; i++)
-		{
-			USART_SendData(USART1, uart_db_tx_buf[i]);
-			//while(USART_GetFlagStatus(USART1,USART_FLAG_TC) != SET);
-		}
+		axprotocolbuf[4+i] = *(pbuf+i);
 	}
+
+	//计算校验和
+	cnt = 4+len;
+	for(i=0; i<cnt; i++)
+	{
+		tx_checksum = tx_checksum + axprotocolbuf[i];
+	}
+	axprotocolbuf[i] = tx_checksum;
+	//发送数据
+	cnt = 5+len;
+	//查询传输方式
+	if(HAL_UART_Transmit(AXProtocolUart,(uint8_t *)axprotocolbuf,len,0xffff) != HAL_OK)
+		return AX_PROTOCOL_ERR;
+	return AX_PROTOCOL_OK;
 }
+
 
 
 /**
@@ -60,8 +54,13 @@ void AX_UART_DB_SendPacket(uint8_t *pbuf, uint8_t len, uint8_t num)
   * @返回值  无
   */
 /*
-void USART1_IRQHandler(void)
+void ProtocolUartBusNUM_IRQHandler(void)
 {
+	static uint8_t uart_db_flag_rx_ok = 0; //接收成功标志
+	static uint8_t uart_db_rx_con=0;	   //接收计数器
+	static uint8_t uart_db_rx_checksum;    //帧头部分校验和
+	static uint8_t uart_db_rx_buf[40];	   //接收缓冲，数据内容小于等于32Byte
+
 	uint8_t Res;
 
 	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET)  //接收中断
@@ -131,24 +130,11 @@ void USART1_IRQHandler(void)
   * @参  数  *pbuf：接收数据指针,第1个字节为帧编码，后面为数据
   * @返回值	 0-无数据接收，other-需要读取的数据字节个数
   */
-uint8_t AX_UART_DB_GetRxData(uint8_t *pbuf)
+uint8_t AX_Protocol_GetRxData(uint8_t *pbuf)
 {
-	uint8_t cnt,i;
-
-	if(uart_db_flag_rx_ok != 0)
-	{
-		cnt = uart_db_rx_buf[2]-4;
-
-		for(i=0; i<cnt; i++)
-		{
-			*(pbuf+i) = uart_db_rx_buf[3+i];
-		}
-
-		uart_db_flag_rx_ok = 0;
-		return cnt;
-	}
-	else
-	{
 		return 0;
-	}
+
 }
+
+
+#endif

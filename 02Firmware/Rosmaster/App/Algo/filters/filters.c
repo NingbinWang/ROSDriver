@@ -10,7 +10,6 @@
 float ComplementaryFliter(float acc, float gyro, float dt,float a) 
 {
 	float angle;
-    a = 0.98;  
     angle = a * (angle + gyro * dt) + (1 - a) * (acc);  
     return angle;  
 }

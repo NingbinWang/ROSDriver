@@ -1,29 +1,28 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdint.h>
-#define PID_SCALE  0.01f  //PID缩放系数
-//PID参数
-int16_t ax_motor_kp=300;
-int16_t ax_motor_ki=0;
-int16_t ax_motor_kd=0;
-/**
-  * @简  述   PID控制函数
-  * @参  数   spd_target:编码器速度目标值 ,范围（±250）
-  *           spd_current: 编码器速度当前值
-  * @返回值  电机PWM速度
-  */
-int16_t PID_MotorVelocityPidCtl(int16_t spd_target, int16_t spd_current)
+
+//pid控制器 可做速度内环控制函数
+float PID_PidCtl(float bias, int16_t bias_diff, float bias_integral,float kP,float kD,float kI,float pidscale)
 {
-	static int16_t motor_pwm_out;
-	static int32_t bias,bias_last,bias_integral = 0;
+    return kP*bias*pidscale + kD*bias_diff*pidscale + kI*bias_integral*pidscale;
 
-	bias = spd_target - spd_current;
-
-	bias_integral += bias;
-
-	motor_pwm_out += ax_motor_kp*bias*PID_SCALE + ax_motor_kd*(bias-bias_last)*PID_SCALE + ax_motor_ki*bias_integral*PID_SCALE;
-
-	bias_last = bias;
-
-	return motor_pwm_out;
 }
+
+
+//PD控制器 可做 角度环控制函数
+float PID_PdCtl(float target_angle,float current_angle,float target_speed,float current_speed,float fP,float fD)    
+{
+    return (target_angle - current_angle) * fP + (target_speed - current_speed) * fD;//PD控制器
+}
+
+
+
+//PI控制器，输出=误差*P+误差积分*I    可做 速度外环控制函数
+float PID_PiCtl(float delta,float integral,float fP,float fI)
+{
+	return delta * fP + integral * fI; //PI控制器，输出=误差*P+误差积分*I 
+}
+
+
+
