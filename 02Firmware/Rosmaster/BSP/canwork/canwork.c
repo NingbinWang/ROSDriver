@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
+uint8_t  CAN_SendNormalData(CAN_HandleTypeDef*  hcan,uint16_t ID,uint8_t *pData,uint16_t  Len);//CAN发送函数
 
 CAN_TxHeaderTypeDef     TxMeg;//CAN发送设置相关结构体
 CAN_RxHeaderTypeDef     RxMeg;//CAN接收设置相关结构体
@@ -71,7 +71,7 @@ uint8_t  CAN_SendNormalData(CAN_HandleTypeDef* hcan,uint16_t ID,uint8_t *pData,u
     return HAL_OK;//如果发送成功结束，返回值为0
 }
 //CAN总线通信，使用CAN1，这是CAN专用的printf函数
-//调用方法：CAN1_printf("123"); //向UART8发送字符123
+//调用方法：CAN1_printf("123"); //向can发送字符123
 void CAN_printf (char *fmt, ...)
 {
     char buff[CAN_REC_LEN+1];  //用于存放转换后的数据 [长度]

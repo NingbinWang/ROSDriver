@@ -14,6 +14,8 @@ void MotorMC520ASetSpeed(int8_t _direction, int16_t _speed);
 void MotorMC520BSetSpeed(int8_t _direction, int16_t _speed);
 void MotorMC520APWMStart();
 void MotorMC520BPWMStart();
+void MotorMC520A_Stop(void);
+void MotorMC520B_Stop(void);
 #endif
 
 

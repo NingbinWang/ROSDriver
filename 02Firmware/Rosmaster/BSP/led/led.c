@@ -8,24 +8,18 @@
 #include "led_conf.h"
 #if LED_ENABLE
 
-void GREEN_LEDSET_ON()
+void GREEN_LEDSET()
 {
+	HAL_GPIO_TogglePin(LED1_GREEN_GPIO_Port,LED1_GREEN_Pin);
+}
+
+
+void RED_LEDSET()
+{
+	HAL_GPIO_TogglePin(LED2_RED_GPIO_Port,LED2_RED_Pin);
 
 }
 
-void GREEN_LEDSET_OFF()
-{
 
-}
-
-void RED_LEDSET_ON()
-{
-
-}
-
-void RED_LEDSET_OFF()
-{
-
-}
 
 #endif

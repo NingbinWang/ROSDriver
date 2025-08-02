@@ -149,7 +149,6 @@ void MotorMC520BSetSpeed(int8_t _direction, int16_t _speed)
     if(_direction == 0)
     {
     	MotorMC520B_Forward();
-
         __HAL_TIM_SET_COMPARE(MOTORMC520B_PWM, MOTORMC520B_PWM_CH, abs(_speed));
 
     }

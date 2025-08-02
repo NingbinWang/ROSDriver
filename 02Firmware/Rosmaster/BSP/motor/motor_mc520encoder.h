@@ -11,8 +11,10 @@
 #if MOTORMC520_ENABLE
 #include <stdint.h>
 #include "tim.h"
-int GetMotorAEncoder(void);
-int GetMotorBEncoder(void);
+void SetMotorMC520AEncoderCount(int16_t count);
+void SetMotorMC520BEncoderCount(int16_t count);
+int GetMotorAEncoderCount(void);
+int GetMotorBEncoderCount(void);
 void MotorAEncoderInit(void);
 void MotorBEncoderInit(void);
 #endif

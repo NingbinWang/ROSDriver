@@ -18,22 +18,30 @@ void MotorBEncoderInit(void)
 }
 
 
+void SetMotorMC520AEncoderCount(int16_t count)
+{
+	__HAL_TIM_SET_COUNTER(MOTORMC520A_TIMER,count);
+}
 
-int GetMotorAEncoder(void)//获取motorA 编码器脉冲
+void SetMotorMC520BEncoderCount(int16_t count)
+{
+	__HAL_TIM_SET_COUNTER(MOTORMC520B_TIMER,count);
+}
+
+
+int GetMotorAEncoderCount(void)//获取motorA 编码器脉冲
 {
 	int count = 0;
-	int direct = 0;
-	direct = __HAL_TIM_IS_TIM_COUNTING_DOWN(MOTORMC520A_TIMER);
 	count = (short)(__HAL_TIM_GET_COUNTER(MOTORMC520A_TIMER));//先读取脉冲数
     __HAL_TIM_SET_COUNTER(MOTORMC520A_TIMER,0);//再计数器清零
     return count;//返回脉冲数
 }
 
-int GetMotorBEncoder(void)//获取motorB 编码器脉冲
+int GetMotorBEncoderCount(void)//获取motorB 编码器脉冲
 {
 	int count = 0;
-	int direct = 0;
-	direct = __HAL_TIM_IS_TIM_COUNTING_DOWN(MOTORMC520B_TIMER);
+	//int direct = 0;
+	//direct = __HAL_TIM_IS_TIM_COUNTING_DOWN(MOTORMC520B_TIMER);
 	count = (short)(__HAL_TIM_GET_COUNTER(MOTORMC520B_TIMER));//先读取脉冲数
     __HAL_TIM_SET_COUNTER(MOTORMC520B_TIMER,0);//再计数器清零
     return count;//返回脉冲数

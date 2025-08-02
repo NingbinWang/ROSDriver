@@ -7,6 +7,8 @@
 #define AXProtocolUart &huart1
 #define AXProtocolUartBus USART1
 
+
+
 int AX_Protocol_SendPacket(uint8_t *pbuf, uint8_t len, uint8_t num);
 
 

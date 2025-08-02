@@ -10,7 +10,8 @@
 #include <stdint.h>
 #include "led_conf.h"
 #if LED_ENABLE
-
+void GREEN_LEDSET();
+void RED_LEDSET();
 #endif
 
 
