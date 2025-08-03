@@ -12,9 +12,14 @@
 #include "pid.h"
 #include "filters.h"
 #include "power.h"
+#include "sys_queue.h"
+#include "sys_commandline.h"
+#include "esp8266.h"
+#include "wifiapp.h"
 
-
-
+bool wifion = false;
+MPU6050_t mpu6050data;
+//Ayou b zuo
 //编码器控制
 int16_t gAMotorencoderPulse;	//左编码器绝对值
 int16_t gBMotorencoderPulse;	//右编码器绝对值
@@ -163,7 +168,6 @@ void SpeedControl(void)//速度外环控制函数
 
 void SetMotorVoltage()//设置电机电压和方向
 {
-
 	gAMotorPwm = gfAngleControlOut-gfSpeedControlOut;
 	gBMotorPwm = gfAngleControlOut-gfSpeedControlOut;
 	if(gAMotorPwm > 2000)
@@ -172,17 +176,17 @@ void SetMotorVoltage()//设置电机电压和方向
 		gBMotorPwm = 2000;
 
     if(gAMotorPwm > 0){
-    	MotorMC520ASetSpeed(0,-gAMotorPwm);
+    	MotorMC520ASetSpeed(0,gAMotorPwm);
     }else if(gAMotorPwm < 0){
-    	MotorMC520ASetSpeed(1,-gAMotorPwm);
+    	MotorMC520ASetSpeed(1,gAMotorPwm);
     }else{
     	gAMotorPwm = 0;
     	MotorMC520A_Stop();
     }
     if(gBMotorPwm > 0){
-    	MotorMC520BSetSpeed(0,-gBMotorPwm);
+    	MotorMC520BSetSpeed(0,gBMotorPwm);
     }else if(gBMotorPwm < 0){
-    	MotorMC520BSetSpeed(1,-gBMotorPwm);
+    	MotorMC520BSetSpeed(1,gBMotorPwm);
     }else{
     	gBMotorPwm = 0;
     	MotorMC520B_Stop();
@@ -233,13 +237,13 @@ void App_IMU_Init()
 
 void App_IMU_Task()
 {
-	  MPU6050_t data;
-	  MPU6050_Read_All(MPU6050_I2C_PORT,&data);
+
+	  MPU6050_Read_All(MPU6050_I2C_PORT,&mpu6050data);
 	  //data.KalmanAngleX为roll
 	  //data.KalmanAngleY为ptich
 	  //printf("@%f %f %f %f %f %f %f %f\r\n",data.Ax,data.Ay,data.Az,data.Gx,data.Gy,data.Gz,data.KalmanAngleX,data.KalmanAngleY);
-	  gfCarAngle = data.KalmanAngleY;
-	  gfGyroAngleSpeed = data.Gx;
+	  gfCarAngle = mpu6050data.KalmanAngleY;
+	  gfGyroAngleSpeed = mpu6050data.Gx;
 
 }
 
@@ -250,7 +254,7 @@ void App_Show_Init()
 	ssd1306_Init();
 #endif
 #if SYS_COMMANDLINE_ENABLE
-		CLI_INIT(CLI_BAUDRATE);
+	CLI_INIT();
 #endif
 
 
@@ -265,45 +269,65 @@ void App_Show_Task()
 	sprintf(showcount,"speed %d %d ",gAMotorencoderPulse,gBMotorencoderPulse);
 	ssd1306_WriteString(showcount,Font_7x10,White);
 	ssd1306_SetCursor(0,Font_7x10.FontHeight);
-	sprintf(showcount,"CarAngle:%f %f %f ",gfCarAngle,gfSpeedControlOut,gfSpeedControlOut);
+	sprintf(showcount,"Car:%2f ",gfCarAngle);
+	ssd1306_WriteString(showcount,Font_7x10,White);
+	ssd1306_SetCursor(0,2*Font_7x10.FontHeight);
+	sprintf(showcount,"pwm:%d %d",gAMotorPwm,gBMotorPwm);
+	ssd1306_WriteString(showcount,Font_7x10,White);
 	ssd1306_UpdateScreen();
 #endif
 #if SYS_COMMANDLINE_ENABLE
-		CLI_RUN();
+	CLI_RUN();
 #endif
+	ButtonScan();
+
 }
 
 void App_Control_Init()
 {
-
+	wifion = Wifi_AppInit("xxxx","xxxx");//请修改成自己的WIFI的ssid与密码
+	if(wifion == false)
+		printf("wifi can't connect\r\n");
 }
 
 void App_Control_Task()
 {
-	ButtonScan();
+	
+	BUTTON_T btn;
+	GetButton_status(&btn);
 }
+
 
 
 uint8_t aRxBuffer;
 PROTOCOL_UART_T protocolbuf = {0};
-
+uint8_t connect_count = 0;
 void App_Data_Init()
 {
-
+#if SYS_COMMANDLINE_ENABLE
+	HAL_UART_Receive_IT(PRINTFUart, (uint8_t *)&aRxBuffer, 1);	 //再开启接收中断
+#endif
+#if AX_PROTOCOL_ENABEL
 	HAL_UART_Receive_IT(AXProtocolUart, (uint8_t *)&aRxBuffer, 1);
+#endif
 }
 
 
 void App_Data_Task()
 {
-
-    if(protocolbuf.uart_cnt > 32){
-    	int i = 0;
-    	for(i = 0; i < 32;i++){
-    		printf("%x",protocolbuf.RxBuffer[i]);
-    	}
-    }
-
+#if ANOT_PROTOCOL_ENABLE
+     int16_t tmpdata[6] = {0};
+     uint8_t data[256] = {0};
+     tmpdata[0] = mpu6050data.Accel_X_RAW;
+     tmpdata[1] = mpu6050data.Accel_Y_RAW;
+     tmpdata[2] = mpu6050data.Accel_Z_RAW;
+     tmpdata[3] = mpu6050data.Gyro_X_RAW;
+     tmpdata[4] = mpu6050data.Gyro_Y_RAW;
+     tmpdata[5] = mpu6050data.Gyro_Z_RAW;
+     memcpy((void*)data,(void*)tmpdata,sizeof(uint8_t)*6*2);
+     data[sizeof(uint8_t)*6*2] = 0;
+     ANO_Protocol_SendPacket(data,13,ANTO_SENSOR);
+#endif
 }
 
 
@@ -316,16 +340,26 @@ void App_Init()
 	App_Balance_Init();
 	App_Show_Init();
 	App_Control_Init();
-	App_Control_Init();
+	App_Data_Init();
 }
+
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     /* Prevent unused argument(s) compilation warning */
-     UNUSED(huart);
+      UNUSED(huart);
     /* NOTE: This function Should not be modified, when the callback is needed,
            the HAL_UART_TxCpltCallback could be implemented in the user file
-  */
+    */
+#if SYS_COMMANDLINE_ENABLE
+    if(huart->Instance == PRINTFUartBus){
+	    QUEUE_IN(cli_rx_buff, aRxBuffer);
+    	//HAL_UART_Transmit(&huart1, (uint8_t *)aRxBuffer, 1, 0xffff);
+    	// HAL_UART_Receive_IT(&huart1, (uint8_t *)aRxBuffer, 1);
+		HAL_UART_Receive_IT(PRINTFUart, (uint8_t *)&aRxBuffer, 1);   //再开启接收中断
+	}
+#endif
+#if AX_PROTOCOL_ENABEL
     if(huart->Instance == AXProtocolUartBus){
     	if(protocolbuf.uart_cnt > RXBUFFERSIZE)
     	{
@@ -334,7 +368,13 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     	}else{
     		protocolbuf.RxBuffer[protocolbuf.uart_cnt++] = aRxBuffer;   //接收数据转存
     	}
-
+		HAL_UART_Receive_IT(AXProtocolUart, (uint8_t *)&aRxBuffer, 1);   //再开启接收中断
     }
-	HAL_UART_Receive_IT(AXProtocolUart, (uint8_t *)&aRxBuffer, 1);   //再开启接收中断
+#endif
+#if ESP8266_ENBALE
+    if(huart->Instance == ESP8266_USART_BUS){
+    	esp8266_RxCallBack();
+    }
+#endif
+	
 }

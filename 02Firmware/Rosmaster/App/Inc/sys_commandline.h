@@ -26,10 +26,6 @@
 #define CLI_HISTORY         TRUE                    /* history command enable/disable */
 #define HISTORY_MAX         10                      /* maxium number ofhistory command */
 #define CLI_PRINTF          TRUE                    /* printf for debug */
-#define CLI_BAUDRATE        ((uint32_t)115200)      /* band rate */
-#define USART_INIT(baud)    debug_usart_init(baud)  /* usart init. */
-#define SYSTEM_REBOOT()     NVIC_SystemReset()      /* MCU reboot */
-
 
 #define KEY_UP              "\x1b\x5b\x41"  /* [up] key: 0x1b 0x5b 0x41 */
 #define KEY_DOWN            "\x1b\x5b\x42"  /* [down] key: 0x1b 0x5b 0x42 */
@@ -283,7 +279,7 @@ __packed typedef struct {
 
 
 
-extern void cli_init(uint32_t baud);
+extern void cli_init(void);
 extern void cli_task(void);
 
 #endif

@@ -2,26 +2,25 @@
 #if (ESP8266_ENBALE)
 
 #include "esp8266.h"
-#include "esp8266test.h"
-
-osThreadId 		WifiTaskHandle;
-osSemaphoreId 	WifiSemHandle;
-
 
 WIFI_T	Wifi;
 
-/**@fn         esp8266_SendRaw
- * @brief      send message
- * @param[in]  data     data of message
- * @param[in]  len      length of message
- * @return     sucess return true  ,fail return  false
- */
-bool esp8266_SendRaw(uint8_t *data,uint16_t len)
+bool esp8266_SendRawdata(uint8_t *data,uint16_t len,uint32_t timeout)
 {
-	if(len <= _WIFI_TX_SIZE)
+	if(HAL_UART_Transmit(ESP8266_USART,data,len,timeout) == HAL_OK)
+		return true;
+	else
+		return false;
+}
+
+
+
+bool esp8266_SendRaw(uint8_t *data,uint16_t len,uint32_t timeout)
+{
+	if(len <= ESP8266_TX_SIZE)
 	{
 		memcpy(Wifi.TxBuffer,data,len);
-		if(HAL_UART_Transmit(&_WIFI_USART,data,len,100) == HAL_OK)
+		if(HAL_UART_Transmit(ESP8266_USART,data,len,timeout) == HAL_OK)
 			return true;
 		else
 			return false;
@@ -37,7 +36,7 @@ bool esp8266_SendRaw(uint8_t *data,uint16_t len)
  */
 bool esp8266_SendString(char *data)
 {
-	return esp8266_SendRaw((uint8_t*)data,strlen(data));
+	return esp8266_SendRaw((uint8_t*)data,strlen(data),500);
 }
 
 /**@fn         esp8266_SendStringAndWait
@@ -46,12 +45,40 @@ bool esp8266_SendString(char *data)
  * @param[in]  DelayMs     wait time
  * @return    sucess return true  ,fail return  false
  */
-bool esp8266_SendStringAndWait(char *data,uint16_t DelayMs)
+bool esp8266_SendStringAndWait(char *data,uint32_t timeout)
 {
-	if(esp8266_SendRaw((uint8_t*)data,strlen(data))==false)
-		return false;
-	osDelay(DelayMs);
-	return true;
+	return esp8266_SendRaw((uint8_t*)data,strlen(data),timeout);
+}
+/**@fn         esp8266_RxClear
+ * @brief
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+void	esp8266_RxClear(void)
+{
+	memset(Wifi.RxBuffer,0,ESP8266_RX_SIZE);
+	Wifi.RxIndex=0;
+}
+
+/**@fn         esp8266_TxClear
+ * @brief
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+void	esp8266_TxClear(void)
+{
+	memset(Wifi.TxBuffer,0,ESP8266_TX_SIZE);
+}
+/**@fn         esp8266_Init
+ * @brief      发送字符串后，空载一段时间
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+void	esp8266_Init()
+{
+	esp8266_RxClear();
+	esp8266_TxClear();
+	HAL_UART_Receive_IT(ESP8266_USART,&Wifi.usartBuff,1);
 }
 
 /**@fn         esp8266_WaitForString
@@ -76,7 +103,7 @@ bool esp8266_WaitForString(uint32_t TimeOut_ms,uint8_t *result,uint8_t CountOfPa
     va_end (tag);
 	for(uint32_t t=0 ; t<TimeOut_ms ; t+=50)
 	{
-		osDelay(50);
+		ESP8266_Delay(50);
 		for(uint8_t	mx=0 ; mx<CountOfParameter ; mx++)
 		{
 			if(strstr((char*)Wifi.RxBuffer,arg[mx])!=NULL)
@@ -90,6 +117,453 @@ bool esp8266_WaitForString(uint32_t TimeOut_ms,uint8_t *result,uint8_t CountOfPa
 	return false;
 
 }
+
+/**@fn         esp8266_Restart
+ * @brief
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+bool	esp8266_Restart(void)
+{
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		esp8266_RxClear();
+		sprintf((char*)Wifi.TxBuffer,"AT+RST\r\n");
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;
+		returnVal=true;
+	}while(0);
+	return returnVal;
+}
+
+/**@fn         esp8266_SetMode
+ * @brief
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+bool esp8266_SetMode(WIFIMODE_E	mode)
+{
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		esp8266_RxClear();
+		sprintf((char*)Wifi.TxBuffer,"AT+CWMODE_CUR=%d\r\n",mode);
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;
+		Wifi.Mode = mode;
+		returnVal=true;
+	}while(0);
+	return returnVal;
+}
+
+/**@fn         esp8266_GetVersion
+ * @brief
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+bool esp8266_GetVersion(void)
+{
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		esp8266_RxClear();
+		sprintf((char*)Wifi.TxBuffer,"AT+GMR\r\n");
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;
+		returnVal=true;
+	}while(0);
+	return returnVal;
+}
+
+/**@fn         esp8266_Echo
+ * @brief
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+bool	esp8266_Echo(int value)
+{
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		esp8266_RxClear();
+		sprintf((char*)Wifi.TxBuffer,"ATE%d\r\n",value);
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;
+		returnVal=true;
+	}while(0);
+	return returnVal;
+}
+
+bool	esp8266_UartCheck()
+{
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		esp8266_RxClear();
+		sprintf((char*)Wifi.TxBuffer,"AT+UART?\r\n");
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;
+		returnVal=true;
+	}while(0);
+	return returnVal;
+}
+
+
+/**@fn         Wifi_ReturnStrings
+ * @brief      发送字符串后，空载一段时间
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+bool esp8266_Station_ConnectToAp(char *SSID,char *Pass,char *MAC)
+{
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		esp8266_RxClear();
+		if(MAC == NULL)
+			sprintf((char*)Wifi.TxBuffer,"AT+CWJAP_CUR=\"%s\",\"%s\"\r\n",SSID,Pass);
+		else
+			sprintf((char*)Wifi.TxBuffer,"AT+CWJAP_CUR=\"%s\",\"%s\",\"%s\"\r\n",SSID,Pass,MAC);
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_VERYHIGH,&result,1,"\r\nWIFI CONNECTED\r\n")==false)
+			break;
+		if( result > 1)
+			break;
+		returnVal=true;
+	}while(0);
+	return returnVal;
+}
+
+/**@fn         Wifi_TcpIp_StartUdpConnection
+ * @brief      发送字符串后，空载一段时间
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+bool esp8266_TcpIp_StartUdpConnection(uint8_t LinkId,char *RemoteIp,uint16_t RemotePort,uint16_t LocalPort)
+{
+
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		esp8266_RxClear();
+    if(Wifi.TcpIpMultiConnection==false)
+      sprintf((char*)Wifi.TxBuffer,"AT+CIPSTART=\"UDP\",\"%s\",%d,%d\r\n",RemoteIp,RemotePort,LocalPort);
+    else
+      sprintf((char*)Wifi.TxBuffer,"AT+CIPSTART=%d,\"UDP\",\"%s\",%d,%d\r\n",LinkId,RemoteIp,RemotePort,LocalPort);
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_HIGH,&result,3,"WIFI CONNECTED","ALREADY","ERROR")==false)
+			break;
+		if(result == 3)
+			break;
+		returnVal=true;
+	}while(0);
+	return returnVal;
+}
+
+bool esp8266_ReturnStrings(char *InputString,char *SplitterChars,uint8_t CountOfParameter,...)
+{
+	if(CountOfParameter == 0)
+		return false;
+	va_list tag;
+	va_start (tag,CountOfParameter);
+	char *arg[CountOfParameter];
+	for(uint8_t i=0; i<CountOfParameter ; i++)
+		arg[i] = va_arg (tag, char *);
+  va_end (tag);
+
+	char *str;
+	str = strtok (InputString,SplitterChars);
+	if(str == NULL)
+		return false;
+	uint8_t i=0;
+	while (str != NULL)
+  {
+    str = strtok (NULL,SplitterChars);
+		if(str != NULL)
+			CountOfParameter--;
+		strcpy(arg[i],str);
+		i++;
+		if(CountOfParameter==0)
+		{
+			return true;
+		}
+  }
+	return false;
+
+}
+
+bool	esp8266_GetMyIp(void)
+{
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		esp8266_RxClear();
+		sprintf((char*)Wifi.TxBuffer,"AT+CIFSR\r\n");
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;
+		sscanf((char*)Wifi.RxBuffer,"AT+CIFSR\r\r\n+CIFSR:APIP,\"%[^\"]",Wifi.MyIP);
+    sscanf((char*)Wifi.RxBuffer,"AT+CIFSR\r\r\n+CIFSR:STAIP,\"%[^\"]",Wifi.MyIP);
+
+
+    esp8266_RxClear();
+		sprintf((char*)Wifi.TxBuffer,"AT+CIPSTA?\r\n");
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		if(result == 2)
+			break;
+
+    char *str=strstr((char*)Wifi.RxBuffer,"gateway:");
+    if(str==NULL)
+      break;
+    if(esp8266_ReturnStrings(str,"\"",1,Wifi.MyGateWay)==false)
+      break;
+
+		returnVal=true;
+	}while(0);
+	return returnVal;
+}
+
+/**@fn         Wifi_ReturnStrings
+ * @brief      发送字符串后，空载一段时间
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+bool  esp8266_TcpIp_SetMultiConnection(bool EnableMultiConnections)
+{
+
+	uint8_t result;
+	bool	returnVal=false;
+	do
+	{
+		esp8266_RxClear();
+		sprintf((char*)Wifi.TxBuffer,"AT+CIPMUX=%d\r\n",EnableMultiConnections);
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		//if(Wifi_WaitForString(_WIFI_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+		//	break;
+		//if(result == 2)
+		//	break;
+		Wifi.TcpIpMultiConnection=EnableMultiConnections;
+			returnVal=true;
+	}while(0);
+	return returnVal;
+}
+
+
+/**@fn         Wifi_ReturnStrings
+ * @brief      发送字符串后，空载一段时间
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+bool  esp8266_TcpIp_SendDataUdp(uint8_t LinkId,uint16_t dataLen,uint8_t *data)
+{
+
+	uint8_t result;
+	bool		returnVal=false;
+	int i = 0;
+	do
+	{
+		uint8_t tmpchar[dataLen+2];
+		esp8266_RxClear();
+		esp8266_TxClear();
+		if(Wifi.TcpIpMultiConnection==false)
+			sprintf((char*)Wifi.TxBuffer,"AT+CIPSEND=%d\r\n",dataLen);
+		else
+			sprintf((char*)Wifi.TxBuffer,"AT+CIPSEND=%d,%d\r\n",LinkId,dataLen);
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		ESP8266_Delay(100);
+		esp8266_TxClear();
+		for(i=0;i<dataLen;i++)
+		{
+			tmpchar[i] = data[i];
+		}
+		//if(esp8266_WaitForString(ESP8266_WAIT_TIME_LOW,&result,2,">","ERROR")==false)
+		//	break;
+		//if(result == 2)
+		//	break;
+		tmpchar[dataLen] = '\r';
+		tmpchar[dataLen+1] = '\n';
+		esp8266_RxClear();
+		returnVal = esp8266_SendRawdata(tmpchar,dataLen+2,5000);
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+			break;
+		returnVal=true;
+	}while(0);
+	return returnVal;
+
+}
+
+
+/**@fn         Wifi_ReturnStrings
+ * @brief      发送字符串后，空载一段时间
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+bool  esp8266_TcpIp_StartTcpConnection(uint8_t LinkId,char *RemoteIp,uint16_t RemotePort,uint16_t TimeOut)
+{
+
+	uint8_t result;
+	bool		returnVal=false;
+	do
+	{
+		esp8266_RxClear();
+		sprintf((char*)Wifi.TxBuffer,"AT+CIPSERVER=1,%d\r\n",RemotePort);
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		//if(Wifi_WaitForString(_WIFI_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
+		//	break;
+		//if(result == 2)
+		//	break;
+		esp8266_RxClear();
+		if(Wifi.TcpIpMultiConnection==false)
+			sprintf((char*)Wifi.TxBuffer,"AT+CIPSTART=\"TCP\",\"%s\",%d,%d\r\n",RemoteIp,RemotePort,TimeOut);
+		else
+			sprintf((char*)Wifi.TxBuffer,"AT+CIPSTART=%d,\"TCP\",\"%s\",%d,%d\r\n",LinkId,RemoteIp,RemotePort,TimeOut);
+		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
+			break;
+		if(esp8266_WaitForString(ESP8266_WAIT_TIME_HIGH,&result,3,"OK","CONNECT","ERROR")==false)
+			break;
+		if(result == 3)
+			break;
+		returnVal=true;
+	}while(0);
+
+	return returnVal;
+}
+
+/**@fn         esp8266_RxCallBack
+ * @brief
+ * @param[in]  data     发送的消息
+ * @return     成功返回 true  错误返回 false
+ */
+void	esp8266_RxCallBack(void)
+{
+  //+++ at command buffer
+  if(Wifi.RxIsData==false)
+  {
+    Wifi.RxBuffer[Wifi.RxIndex] = Wifi.usartBuff;
+    if(Wifi.RxIndex < ESP8266_RX_SIZE)
+      Wifi.RxIndex++;
+  }
+  //--- at command buffer
+  //+++  data buffer
+  else
+  {
+    if( HAL_GetTick()-Wifi.RxDataLastTime > 50)
+      Wifi.RxIsData=false;
+    //+++ Calculate Data len after +IPD
+    if(Wifi.RxDataLen==0)
+    {
+      //+++ Calculate Data len after +IPD ++++++ Multi Connection OFF
+      if (Wifi.TcpIpMultiConnection==false)
+      {
+        Wifi.RxBufferForDataTmp[Wifi.RxIndexForDataTmp] = Wifi.usartBuff;
+        Wifi.RxIndexForDataTmp++;
+        if(Wifi.RxBufferForDataTmp[Wifi.RxIndexForDataTmp-1]==':')
+        {
+          Wifi.RxDataConnectionNumber=0;
+          Wifi.RxDataLen=atoi((char*)&Wifi.RxBufferForDataTmp[1]);
+        }
+      }
+      //--- Calculate Data len after +IPD ++++++ Multi Connection OFF
+      //+++ Calculate Data len after +IPD ++++++ Multi Connection ON
+      else
+      {
+        Wifi.RxBufferForDataTmp[Wifi.RxIndexForDataTmp] = Wifi.usartBuff;
+        Wifi.RxIndexForDataTmp++;
+        if(Wifi.RxBufferForDataTmp[2]==',')
+        {
+          Wifi.RxDataConnectionNumber=Wifi.RxBufferForDataTmp[1]-48;
+        }
+        if((Wifi.RxIndexForDataTmp>3) && (Wifi.RxBufferForDataTmp[Wifi.RxIndexForDataTmp-1]==':'))
+          Wifi.RxDataLen=atoi((char*)&Wifi.RxBufferForDataTmp[3]);
+      }
+      //--- Calculate Data len after +IPD ++++++ Multi Connection ON
+    }
+    //--- Calculate Data len after +IPD
+    //+++ Fill Data Buffer
+    else
+    {
+      Wifi.RxBufferForData[Wifi.RxIndexForData] = Wifi.usartBuff;
+      if(Wifi.RxIndexForData < ESP8266_RX_FOR_DATA_SIZE)
+        Wifi.RxIndexForData++;
+      if( Wifi.RxIndexForData>= Wifi.RxDataLen)
+      {
+        Wifi.RxIsData=false;
+        Wifi.GotNewData=true;
+      }
+    }
+    //--- Fill Data Buffer
+  }
+  //--- data buffer
+	HAL_UART_Receive_IT(ESP8266_USART,&Wifi.usartBuff,1);
+	//printf("%c",(char)Wifi.usartBuff);
+  //+++ check +IPD in At command buffer
+  if(Wifi.RxIndex>4)
+  {
+    if( (Wifi.RxBuffer[Wifi.RxIndex-4]=='+') && (Wifi.RxBuffer[Wifi.RxIndex-3]=='I') && (Wifi.RxBuffer[Wifi.RxIndex-2]=='P') && (Wifi.RxBuffer[Wifi.RxIndex-1]=='D'))
+    {
+      memset(Wifi.RxBufferForDataTmp,0,sizeof(Wifi.RxBufferForDataTmp));
+      Wifi.RxBuffer[Wifi.RxIndex-4]=0;
+      Wifi.RxBuffer[Wifi.RxIndex-3]=0;
+      Wifi.RxBuffer[Wifi.RxIndex-2]=0;
+      Wifi.RxBuffer[Wifi.RxIndex-1]=0;
+      Wifi.RxIndex-=4;
+      Wifi.RxIndexForData=0;
+      Wifi.RxIndexForDataTmp=0;
+      Wifi.RxIsData=true;
+      Wifi.RxDataLen=0;
+      Wifi.RxDataLastTime = HAL_GetTick();
+    }
+  }
+  //--- check +IPD in At command buffer
+}
+
+
+
+
+
+
+#if  ESP8266_NOWORK
+
 
 /**@fn         esp8266_ReturnString
  * @brief      return string
@@ -132,37 +606,7 @@ bool	esp8266_ReturnString(char *result,uint8_t WantWhichOne,char *SplitterChars)
  * @param[in]  data     发送的消息
  * @return     成功返回 true  错误返回 false
  */
-bool esp8266_ReturnStrings(char *InputString,char *SplitterChars,uint8_t CountOfParameter,...)
-{
-	if(CountOfParameter == 0)
-		return false;
-	va_list tag;
-	va_start (tag,CountOfParameter);
-	char *arg[CountOfParameter];
-	for(uint8_t i=0; i<CountOfParameter ; i++)
-		arg[i] = va_arg (tag, char *);
-  va_end (tag);
 
-	char *str;
-	str = strtok (InputString,SplitterChars);
-	if(str == NULL)
-		return false;
-	uint8_t i=0;
-	while (str != NULL)
-  {
-    str = strtok (NULL,SplitterChars);
-		if(str != NULL)
-			CountOfParameter--;
-		strcpy(arg[i],str);
-		i++;
-		if(CountOfParameter==0)
-		{
-			return true;
-		}
-  }
-	return false;
-
-}
 
 /**@fn         esp8266_ReturnInteger
  * @brief
@@ -211,155 +655,14 @@ void esp8266_RemoveChar(char *str, char garbage)
   *dst = '\0';
 }
 
-/**@fn         esp8266_RxClear
- * @brief
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-void	esp8266_RxClear(void)
-{
-	memset(Wifi.RxBuffer,0,_WIFI_RX_SIZE);
-	Wifi.RxIndex=0;
-    HAL_UART_Receive_IT(&_WIFI_USART,&Wifi.usartBuff,1);
-}
-
-/**@fn         esp8266_TxClear
- * @brief
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-void	esp8266_TxClear(void)
-{
-	memset(Wifi.TxBuffer,0,_WIFI_TX_SIZE);
-}
-
-/**@fn         esp8266_RxCallBack
- * @brief
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-void	esp8266_RxCallBack(void)
-{
-  //+++ at command buffer
-  if(Wifi.RxIsData==false)
-  {
-    Wifi.RxBuffer[Wifi.RxIndex] = Wifi.usartBuff;
-    if(Wifi.RxIndex < _WIFI_RX_SIZE)
-      Wifi.RxIndex++;
-  }
-  //--- at command buffer
-  //+++  data buffer
-  else
-  {
-    if( HAL_GetTick()-Wifi.RxDataLastTime > 50)
-      Wifi.RxIsData=false;
-    //+++ Calculate Data len after +IPD
-    if(Wifi.RxDataLen==0)
-    {
-      //+++ Calculate Data len after +IPD ++++++ Multi Connection OFF
-      if (Wifi.TcpIpMultiConnection==false)
-      {
-        Wifi.RxBufferForDataTmp[Wifi.RxIndexForDataTmp] = Wifi.usartBuff;
-        Wifi.RxIndexForDataTmp++;
-        if(Wifi.RxBufferForDataTmp[Wifi.RxIndexForDataTmp-1]==':')
-        {
-          Wifi.RxDataConnectionNumber=0;
-          Wifi.RxDataLen=atoi((char*)&Wifi.RxBufferForDataTmp[1]);
-        }
-      }
-      //--- Calculate Data len after +IPD ++++++ Multi Connection OFF
-      //+++ Calculate Data len after +IPD ++++++ Multi Connection ON
-      else
-      {
-        Wifi.RxBufferForDataTmp[Wifi.RxIndexForDataTmp] = Wifi.usartBuff;
-        Wifi.RxIndexForDataTmp++;
-        if(Wifi.RxBufferForDataTmp[2]==',')
-        {
-          Wifi.RxDataConnectionNumber=Wifi.RxBufferForDataTmp[1]-48;
-        }
-        if((Wifi.RxIndexForDataTmp>3) && (Wifi.RxBufferForDataTmp[Wifi.RxIndexForDataTmp-1]==':'))
-          Wifi.RxDataLen=atoi((char*)&Wifi.RxBufferForDataTmp[3]);
-      }
-      //--- Calculate Data len after +IPD ++++++ Multi Connection ON
-    }
-    //--- Calculate Data len after +IPD
-    //+++ Fill Data Buffer
-    else
-    {
-      Wifi.RxBufferForData[Wifi.RxIndexForData] = Wifi.usartBuff;
-      if(Wifi.RxIndexForData < _WIFI_RX_FOR_DATA_SIZE)
-        Wifi.RxIndexForData++;
-      if( Wifi.RxIndexForData>= Wifi.RxDataLen)
-      {
-        Wifi.RxIsData=false;
-        Wifi.GotNewData=true;
-      }
-    }
-    //--- Fill Data Buffer
-  }
-  //--- data buffer
-	HAL_UART_Receive_IT(&_WIFI_USART,&Wifi.usartBuff,1);
-  //+++ check +IPD in At command buffer
-  if(Wifi.RxIndex>4)
-  {
-    if( (Wifi.RxBuffer[Wifi.RxIndex-4]=='+') && (Wifi.RxBuffer[Wifi.RxIndex-3]=='I') && (Wifi.RxBuffer[Wifi.RxIndex-2]=='P') && (Wifi.RxBuffer[Wifi.RxIndex-1]=='D'))
-    {
-      memset(Wifi.RxBufferForDataTmp,0,sizeof(Wifi.RxBufferForDataTmp));
-      Wifi.RxBuffer[Wifi.RxIndex-4]=0;
-      Wifi.RxBuffer[Wifi.RxIndex-3]=0;
-      Wifi.RxBuffer[Wifi.RxIndex-2]=0;
-      Wifi.RxBuffer[Wifi.RxIndex-1]=0;
-      Wifi.RxIndex-=4;
-      Wifi.RxIndexForData=0;
-      Wifi.RxIndexForDataTmp=0;
-      Wifi.RxIsData=true;
-      Wifi.RxDataLen=0;
-      Wifi.RxDataLastTime = HAL_GetTick();
-    }
-  }
-  //--- check +IPD in At command buffer
-}
 
 
 
 
-/**@fn         esp8266_Init
- * @brief      发送字符串后，空载一段时间
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-void	esp8266_Init(osPriority	Priority)
-{
-	HAL_UART_Receive_IT(&_WIFI_USART,&Wifi.usartBuff,1);
-	esp8266_RxClear();
-	esp8266_TxClear();
-}
 
-/**@fn         Wifi_ReturnStrings
- * @brief      发送字符串后，空载一段时间
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-bool	esp8266_Restart(void)
-{
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
-	uint8_t result;
-	bool		returnVal=false;
-	do
-	{
-		esp8266_RxClear();
-		sprintf((char*)Wifi.TxBuffer,"AT+RST\r\n");
-		if(esp8266_SendString((char*)Wifi.TxBuffer)==false)
-			break;
-		if(esp8266_WaitForString(_WIFI_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
-			break;
-		if(result == 2)
-			break;
-		returnVal=true;
-	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
-	return returnVal;
-}
+
+
+
 
 /**@fn         esp8266_ReturnStrings
  * @brief      发送字符串后，空载一段时间
@@ -368,7 +671,6 @@ bool	esp8266_Restart(void)
  */
 bool	esp8266_DeepSleep(uint16_t DelayMs)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -383,7 +685,6 @@ bool	esp8266_DeepSleep(uint16_t DelayMs)
 			break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
 	return returnVal;
 }
 
@@ -395,7 +696,7 @@ bool	esp8266_DeepSleep(uint16_t DelayMs)
  */
 bool	Wifi_FactoryReset(void)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
+	osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -410,7 +711,7 @@ bool	Wifi_FactoryReset(void)
 			break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -422,7 +723,7 @@ bool	Wifi_FactoryReset(void)
  */
 bool	Wifi_Update(void)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
+	osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -437,7 +738,7 @@ bool	Wifi_Update(void)
 			break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -448,7 +749,7 @@ bool	Wifi_Update(void)
  */
 bool	Wifi_SetRfPower(uint8_t Power_0_to_82)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
+	osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -463,36 +764,10 @@ bool	Wifi_SetRfPower(uint8_t Power_0_to_82)
 			break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
-/**@fn         Wifi_ReturnStrings
- * @brief      发送字符串后，空载一段时间
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-bool	Wifi_SetMode(WIFIMODE_E	WifiMode_)
-{
-	//osSemaphoreWait(WifiSemHandle,osWaitForever);
-	uint8_t result;
-	bool		returnVal=false;
-	do
-	{
-		Wifi_RxClear();
-		sprintf((char*)Wifi.TxBuffer,"AT+CWMODE_CUR=%d\r\n",WifiMode_);
-		if(Wifi_SendString((char*)Wifi.TxBuffer)==false)
-			break;
-		if(Wifi_WaitForString(_WIFI_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
-			break;
-		if(result == 2)
-			break;
-		Wifi.Mode = WifiMode_;
-		returnVal=true;
-	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
-	return returnVal;
-}
 
 /**@fn         Wifi_ReturnStrings
  * @brief      发送字符串后，空载一段时间
@@ -501,7 +776,7 @@ bool	Wifi_SetMode(WIFIMODE_E	WifiMode_)
  */
 bool	Wifi_GetMode(void)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
+	osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -520,7 +795,7 @@ bool	Wifi_GetMode(void)
 			Wifi.Mode = WifiMode_Error;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -529,74 +804,9 @@ bool	Wifi_GetMode(void)
  * @param[in]  data     发送的消息
  * @return     成功返回 true  错误返回 false
  */
-bool	Wifi_GetMyIp(void)
-{
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
-	uint8_t result;
-	bool		returnVal=false;
-	do
-	{
-		Wifi_RxClear();
-		sprintf((char*)Wifi.TxBuffer,"AT+CIFSR\r\n");
-		if(Wifi_SendString((char*)Wifi.TxBuffer)==false)
-			break;
-		if(Wifi_WaitForString(_WIFI_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
-			break;
-		if(result == 2)
-			break;
-		sscanf((char*)Wifi.RxBuffer,"AT+CIFSR\r\r\n+CIFSR:APIP,\"%[^\"]",Wifi.MyIP);
-    sscanf((char*)Wifi.RxBuffer,"AT+CIFSR\r\r\n+CIFSR:STAIP,\"%[^\"]",Wifi.MyIP);
 
 
-    Wifi_RxClear();
-		sprintf((char*)Wifi.TxBuffer,"AT+CIPSTA?\r\n");
-		if(Wifi_SendString((char*)Wifi.TxBuffer)==false)
-			break;
-		if(Wifi_WaitForString(_WIFI_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
-			break;
-		if(result == 2)
-			break;
 
-    char *str=strstr((char*)Wifi.RxBuffer,"gateway:");
-    if(str==NULL)
-      break;
-    if(Wifi_ReturnStrings(str,"\"",1,Wifi.MyGateWay)==false)
-      break;
-
-		returnVal=true;
-	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
-	return returnVal;
-}
-
-/**@fn         Wifi_ReturnStrings
- * @brief      发送字符串后，空载一段时间
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-bool	Wifi_Station_ConnectToAp(char *SSID,char *Pass,char *MAC)
-{
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
-	uint8_t result;
-	bool		returnVal=false;
-	do
-	{
-		Wifi_RxClear();
-		if(MAC==NULL)
-			sprintf((char*)Wifi.TxBuffer,"AT+CWJAP_CUR=\"%s\",\"%s\"\r\n",SSID,Pass);
-		else
-			sprintf((char*)Wifi.TxBuffer,"AT+CWJAP_CUR=\"%s\",\"%s\",\"%s\"\r\n",SSID,Pass,MAC);
-		if(Wifi_SendString((char*)Wifi.TxBuffer)==false)
-			break;
-		if(Wifi_WaitForString(_WIFI_WAIT_TIME_VERYHIGH,&result,3,"\r\nOK\r\n","\r\nERROR\r\n","\r\nFAIL\r\n")==false)
-			break;
-		if( result > 1)
-			break;
-		returnVal=true;
-	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
-	return returnVal;
-}
 
 /**@fn         Wifi_ReturnStrings
  * @brief      发送字符串后，空载一段时间
@@ -605,7 +815,7 @@ bool	Wifi_Station_ConnectToAp(char *SSID,char *Pass,char *MAC)
  */
 bool	Wifi_Station_Disconnect(void)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
+	osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -620,7 +830,7 @@ bool	Wifi_Station_Disconnect(void)
 			break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -631,7 +841,7 @@ bool	Wifi_Station_Disconnect(void)
  */
 bool	Wifi_Station_DhcpEnable(bool Enable)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
+
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -647,7 +857,6 @@ bool	Wifi_Station_DhcpEnable(bool Enable)
 		Wifi.StationDhcp=Enable;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
 	return returnVal;
 }
 
@@ -658,7 +867,7 @@ bool	Wifi_Station_DhcpEnable(bool Enable)
  */
 bool	Wifi_Station_DhcpIsEnable(void)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
+	osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -694,7 +903,7 @@ bool	Wifi_Station_DhcpIsEnable(void)
 		}
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -705,7 +914,7 @@ bool	Wifi_Station_DhcpIsEnable(void)
  */
 bool	Wifi_Station_SetIp(char *IP,char *GateWay,char *NetMask)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
+	osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -721,7 +930,7 @@ bool	Wifi_Station_SetIp(char *IP,char *GateWay,char *NetMask)
 		Wifi.StationDhcp=false;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -732,7 +941,7 @@ bool	Wifi_Station_SetIp(char *IP,char *GateWay,char *NetMask)
  */
 bool  Wifi_SoftAp_GetConnectedDevices(void)
 {
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
+  osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -757,7 +966,7 @@ bool  Wifi_SoftAp_GetConnectedDevices(void)
 
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -768,7 +977,7 @@ bool  Wifi_SoftAp_GetConnectedDevices(void)
  */
 bool  Wifi_SoftAp_Create(char *SSID,char *password,uint8_t channel,WIFIEPT_E WifiEncryptionType,uint8_t MaxConnections_1_to_4,bool HiddenSSID)
 {
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
+  osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -783,7 +992,7 @@ bool  Wifi_SoftAp_Create(char *SSID,char *password,uint8_t channel,WIFIEPT_E Wif
 			break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -794,7 +1003,7 @@ bool  Wifi_SoftAp_Create(char *SSID,char *password,uint8_t channel,WIFIEPT_E Wif
  */
 bool  Wifi_TcpIp_GetConnectionStatus(void)
 {
-	osSemaphoreWait(WifiSemHandle,osWaitForever);
+	osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -827,7 +1036,7 @@ bool  Wifi_TcpIp_GetConnectionStatus(void)
     }
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -838,7 +1047,7 @@ bool  Wifi_TcpIp_GetConnectionStatus(void)
  */
 bool  Wifi_TcpIp_Ping(char *PingTo)
 {
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
+  osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -855,36 +1064,10 @@ bool  Wifi_TcpIp_Ping(char *PingTo)
       break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
-/**@fn         Wifi_ReturnStrings
- * @brief      发送字符串后，空载一段时间
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-bool  Wifi_TcpIp_SetMultiConnection(bool EnableMultiConnections)
-{
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
-	uint8_t result;
-	bool		returnVal=false;
-	do
-	{
-		Wifi_RxClear();
-		sprintf((char*)Wifi.TxBuffer,"AT+CIPMUX=%d\r\n",EnableMultiConnections);
-		if(Wifi_SendString((char*)Wifi.TxBuffer)==false)
-			break;
-		if(Wifi_WaitForString(_WIFI_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
-			break;
-		if(result == 2)
-			break;
-    Wifi.TcpIpMultiConnection=EnableMultiConnections;
-		returnVal=true;
-	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
-	return returnVal;
-}
 
 /**@fn         Wifi_ReturnStrings
  * @brief      发送字符串后，空载一段时间
@@ -894,7 +1077,7 @@ bool  Wifi_TcpIp_SetMultiConnection(bool EnableMultiConnections)
 bool  Wifi_TcpIp_GetMultiConnection(void)
 {
 
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
+  osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -912,75 +1095,12 @@ bool  Wifi_TcpIp_GetMultiConnection(void)
     Wifi.TcpIpMultiConnection=(bool)result;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
-/**@fn         Wifi_ReturnStrings
- * @brief      发送字符串后，空载一段时间
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-bool  Wifi_TcpIp_StartTcpConnection(uint8_t LinkId,char *RemoteIp,uint16_t RemotePort,uint16_t TimeOut)
-{
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
-	uint8_t result;
-	bool		returnVal=false;
-	do
-	{
-    Wifi_RxClear();
-    sprintf((char*)Wifi.TxBuffer,"AT+CIPSERVER=1,%d\r\n",RemotePort);
-		if(Wifi_SendString((char*)Wifi.TxBuffer)==false)
-			break;
-		if(Wifi_WaitForString(_WIFI_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
-			break;
-		if(result == 2)
-			break;
-		Wifi_RxClear();
-    if(Wifi.TcpIpMultiConnection==false)
-      sprintf((char*)Wifi.TxBuffer,"AT+CIPSTART=\"TCP\",\"%s\",%d,%d\r\n",RemoteIp,RemotePort,TimeOut);
-    else
-      sprintf((char*)Wifi.TxBuffer,"AT+CIPSTART=%d,\"TCP\",\"%s\",%d,%d\r\n",LinkId,RemoteIp,RemotePort,TimeOut);
-		if(Wifi_SendString((char*)Wifi.TxBuffer)==false)
-			break;
-		if(Wifi_WaitForString(_WIFI_WAIT_TIME_HIGH,&result,3,"OK","CONNECT","ERROR")==false)
-			break;
-		if(result == 3)
-			break;
-		returnVal=true;
-	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
-	return returnVal;
-}
 
-/**@fn         Wifi_ReturnStrings
- * @brief      发送字符串后，空载一段时间
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-bool  Wifi_TcpIp_StartUdpConnection(uint8_t LinkId,char *RemoteIp,uint16_t RemotePort,uint16_t LocalPort)
-{
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
-	uint8_t result;
-	bool		returnVal=false;
-	do
-	{
-		Wifi_RxClear();
-    if(Wifi.TcpIpMultiConnection==false)
-      sprintf((char*)Wifi.TxBuffer,"AT+CIPSTART=\"UDP\",\"%s\",%d,%d\r\n",RemoteIp,RemotePort,LocalPort);
-    else
-      sprintf((char*)Wifi.TxBuffer,"AT+CIPSTART=%d,\"UDP\",\"%s\",%d,%d\r\n",LinkId,RemoteIp,RemotePort,LocalPort);
-		if(Wifi_SendString((char*)Wifi.TxBuffer)==false)
-			break;
-		if(Wifi_WaitForString(_WIFI_WAIT_TIME_HIGH,&result,3,"OK","ALREADY","ERROR")==false)
-			break;
-		if(result == 3)
-			break;
-		returnVal=true;
-	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
-	return returnVal;
-}
+
 
 /**@fn         Wifi_ReturnStrings
  * @brief      发送字符串后，空载一段时间
@@ -989,7 +1109,7 @@ bool  Wifi_TcpIp_StartUdpConnection(uint8_t LinkId,char *RemoteIp,uint16_t Remot
  */
 bool  Wifi_TcpIp_Close(uint8_t LinkId)
 {
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
+  osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -1007,7 +1127,7 @@ bool  Wifi_TcpIp_Close(uint8_t LinkId)
 			break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -1018,7 +1138,7 @@ bool  Wifi_TcpIp_Close(uint8_t LinkId)
  */
 bool  Wifi_TcpIp_SetEnableTcpServer(uint16_t PortNumber)
 {
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
+  osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -1044,7 +1164,7 @@ bool  Wifi_TcpIp_SetEnableTcpServer(uint16_t PortNumber)
 			break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
@@ -1055,7 +1175,7 @@ bool  Wifi_TcpIp_SetEnableTcpServer(uint16_t PortNumber)
  */
 bool  Wifi_TcpIp_SetDisableTcpServer(uint16_t PortNumber)
 {
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
+  osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -1070,43 +1190,11 @@ bool  Wifi_TcpIp_SetDisableTcpServer(uint16_t PortNumber)
 			break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
-/**@fn         Wifi_ReturnStrings
- * @brief      发送字符串后，空载一段时间
- * @param[in]  data     发送的消息
- * @return     成功返回 true  错误返回 false
- */
-bool  Wifi_TcpIp_SendDataUdp(uint8_t LinkId,uint16_t dataLen,uint8_t *data)
-{
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
-	uint8_t result;
-	bool		returnVal=false;
-	do
-	{
-		Wifi_RxClear();
-    if(Wifi.TcpIpMultiConnection==false)
-      sprintf((char*)Wifi.TxBuffer,"AT+CIPSERVER=0\r\n");
-    else
-      sprintf((char*)Wifi.TxBuffer,"AT+CIPSEND=%d,%d\r\n",LinkId,dataLen);
-		if(Wifi_SendString((char*)Wifi.TxBuffer)==false)
-			break;
-		if(Wifi_WaitForString(_WIFI_WAIT_TIME_LOW,&result,2,">","ERROR")==false)
-			break;
-		if(result == 2)
-			break;
-    Wifi_RxClear();
-    Wifi_SendRaw(data,dataLen);
-    if(Wifi_WaitForString(_WIFI_WAIT_TIME_LOW,&result,2,"OK","ERROR")==false)
-			break;
-		returnVal=true;
-	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
-	return returnVal;
 
-}
 
 /**@fn         Wifi_ReturnStrings
  * @brief      发送字符串后，空载一段时间
@@ -1115,7 +1203,7 @@ bool  Wifi_TcpIp_SendDataUdp(uint8_t LinkId,uint16_t dataLen,uint8_t *data)
  */
 bool  Wifi_TcpIp_SendDataTcp(uint8_t LinkId,uint16_t dataLen,uint8_t *data)
 {
-  osSemaphoreWait(WifiSemHandle,osWaitForever);
+  osSemaphoreWait(_WIFI_OSSEMAPHORE,osWaitForever);
 	uint8_t result;
 	bool		returnVal=false;
 	do
@@ -1139,12 +1227,12 @@ bool  Wifi_TcpIp_SendDataTcp(uint8_t LinkId,uint16_t dataLen,uint8_t *data)
 			break;
 		returnVal=true;
 	}while(0);
-	osSemaphoreRelease(WifiSemHandle);
+	osSemaphoreRelease(_WIFI_OSSEMAPHORE);
 	return returnVal;
 }
 
 
-
+#endif
 
 
 

@@ -3,10 +3,6 @@
 #include "esp8266_conf.h"
 #if (ESP8266_ENBALE)
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "cmsis_os.h"
-
 #include "usart.h"
 #include "gpio.h"
 
@@ -55,10 +51,10 @@ typedef struct
 {
 	//----------------Usart	Paremeter
 	uint8_t                       usartBuff;
-	uint8_t                       RxBuffer[_WIFI_RX_SIZE];
-	uint8_t                       TxBuffer[_WIFI_TX_SIZE];
+	uint8_t                       RxBuffer[ESP8266_RX_SIZE];
+	uint8_t                       TxBuffer[ESP8266_TX_SIZE];
 	uint16_t                      RxIndex;
-    uint8_t                       RxBufferForData[_WIFI_RX_FOR_DATA_SIZE];
+    uint8_t                       RxBufferForData[ESP8266_RX_FOR_DATA_SIZE];
     uint8_t                       RxBufferForDataTmp[8];
     uint8_t                       RxIndexForDataTmp;
     uint16_t                      RxIndexForData;
@@ -91,11 +87,25 @@ extern  WIFI_T	Wifi;
 
 
 
+
+//###################################################################################################
+void	esp8266_Init();
+bool	esp8266_Restart(void);
+bool 	esp8266_GetVersion(void);
+void	esp8266_RxCallBack(void);
+bool    esp8266_Station_ConnectToAp(char *SSID,char *Pass,char *MAC);
+bool    esp8266_SetMode(WIFIMODE_E	mode);
+bool	esp8266_UartCheck();
+bool	esp8266_Echo(int value);
+bool    esp8266_TcpIp_SetMultiConnection(bool EnableMultiConnections);
+bool    esp8266_TcpIp_StartUdpConnection(uint8_t LinkId,char *RemoteIp,uint16_t RemotePort,uint16_t LocalPort);
+bool    esp8266_TcpIp_SendDataUdp(uint8_t LinkId,uint16_t dataLen,uint8_t *data);
+bool	esp8266_GetMyIp(void);
+
+#if  ESP8266_NOWORK
+//###################################################################################################
 //###################################################################################################
 void	Wifi_RxCallBack(void);
-//###################################################################################################
-void	Wifi_Init(osPriority	Priority);
-//###################################################################################################
 bool	Wifi_Restart(void);
 bool	Wifi_DeepSleep(uint16_t DelayMs);
 bool	Wifi_FactoryReset(void);
@@ -127,7 +137,7 @@ bool  Wifi_TcpIp_SetDisableTcpServer(uint16_t PortNumber);
 bool  Wifi_TcpIp_SendDataUdp(uint8_t LinkId,uint16_t dataLen,uint8_t *data);
 bool  Wifi_TcpIp_SendDataTcp(uint8_t LinkId,uint16_t dataLen,uint8_t *data);
 
-
+#endif
 
 #endif
 #endif

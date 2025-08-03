@@ -16,7 +16,7 @@
 #if SYS_COMMANDLINE_ENABLE
 
 
-#include "sys_command_line.h"
+#include "sys_commandline.h"
 
 static uint8_t cli_help(void *para, uint8_t len);
 static uint8_t cli_clear(void *para, uint8_t len);
@@ -247,17 +247,13 @@ static uint8_t cli_history_show(uint8_t mode, char** p_history)
   * @param  bandrate
   * @retval null
   */
-void cli_init(uint32_t baud)
+void cli_init()
 {
     uint8_t i;
-
     memset((uint8_t *)&cli_rx_buff, 0, sizeof(RX_BUFF_TYPE));
-
 #if CLI_HISTORY
     memset((uint8_t *)&history, 0, sizeof(history));
 #endif  /* CLI_HISTORY */
-
-    USART_INIT(baud);
 
     /* init. every command */
     for(i = 0; i < sizeof(CLI_Cmd) / sizeof(COMMAND_S); i++) {
@@ -278,9 +274,7 @@ void cli_init(uint32_t baud)
 
     PRINTF_COLOR(E_FONT_YELLOW, "-------------------------------\r\n\r\n");
     TERMINAL_HIGH_LIGHT();
-    PRINTF("    CLI version: V0.6          \r\n\r\n");
-    PRINTF("    coder: Cat                 \r\n\r\n");
-    PRINTF("    Email: 843553493@qq.com    \r\n\r\n");
+    PRINTF("    CLI version: V1.0          \r\n\r\n");
     TERMINAL_UN_HIGH_LIGHT();
     PRINTF_COLOR(E_FONT_YELLOW, "-------------------------------\r\n\r\n");
 }
@@ -372,7 +366,8 @@ static void cli_rx_handle(RX_BUFF_TYPE *rx_buff)
 #endif  /* CLI_HISTORY */
                     /* display char in terminal */
                     for (; i < Handle.len; i++) {
-                        USART_SendData(DEBUG_USARTx, Handle.buff[i]);
+                        //USART_SendData(DEBUG_USARTx, Handle.buff[i]);
+                        HAL_UART_Transmit(PRINTFUart,(uint8_t *)&Handle.buff[i],1,0xffff);
                     }
 #if CLI_HISTORY
                 }

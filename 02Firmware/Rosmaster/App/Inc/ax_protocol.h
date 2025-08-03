@@ -4,8 +4,8 @@
 #include "config.h"
 #include <stdint.h>
 #if AX_PROTOCOL_ENABEL
-#define AXProtocolUart &huart1
-#define AXProtocolUartBus USART1
+#define AXProtocolUart &huart3
+#define AXProtocolUartBus USART3
 
 
 

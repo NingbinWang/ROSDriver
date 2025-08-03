@@ -3,16 +3,25 @@
 
 #include "config.h"
 #include <stdint.h>
-#if ANOT_PROTOCOL_ENABEL
+#if ANOT_PROTOCOL_ENABLE
+#define ANOT_TRANSF_UART 0
+#define ANOT_TRANSF_ESP8266 1
+
+
+#if  ANOT_TRANSF_UART
 #define ANOProtocolUart &huart1
 #define ANOProtocolUartBus USART1
+#else if ANOT_TRANSF_ESP8266
+#include "esp8266.h"
+#endif
+
+
 
 //设置相关的输出模式
 typedef enum
 {
-    ANTO_VER           =  0x00,//版本号
-    ANTO_STATUS        =  0X01,
-    ANTO_SENSOR        =  0x02,
+    ANO_VER           =  0x00,//版本号
+    ANTO_SENSOR        =  0x01,
     ANTO_RDCDATA       =  0x03,
     ANTO_GPSDATA       =  0x04,
     ANTO_POWER         =  0x05,
@@ -50,8 +59,7 @@ typedef struct
 
 
 
-int ANO_Protocol_SendPacket(uint8_t *pbuf, uint8_t len,const ANTO_MODE_E mode);
-
+bool ANO_Protocol_SendPacket(uint8_t *pbuf, uint8_t len,const ANTO_MODE_E mode);
 
 
 #endif

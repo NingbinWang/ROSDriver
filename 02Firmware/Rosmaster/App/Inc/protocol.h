@@ -7,7 +7,7 @@
 
 #ifndef _PROTOCOL_H_
 #define _PROTOCOL_H_
-
+#include "config.h"
 #define RXBUFFERSIZE  512     //最大接收字节数
 
 typedef struct{
@@ -19,4 +19,7 @@ typedef struct{
 #include "ax_protocol.h"
 #endif
 
+#if ANOT_PROTOCOL_ENABLE
+#include "anot_protocol.h"
+#endif
 #endif /* INC_PROTOCOL_H_ */

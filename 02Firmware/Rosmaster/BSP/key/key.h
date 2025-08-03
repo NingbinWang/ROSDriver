@@ -17,7 +17,7 @@ typedef struct{
 }BUTTON_T;
 
 void ButtonScan(void);
-BUTTON_T GetButton_status(void);
+void GetButton_status(BUTTON_T* btn);
 
 #endif
 

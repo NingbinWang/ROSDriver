@@ -8,7 +8,7 @@
 #if KEY_ENABLE
 
 #include "key.h"
-
+#include <string.h>
 BUTTON_T button = {0};
 
 int iButtonCount;//i代表int型变量，ButtonCount表示按键计数变量
@@ -58,9 +58,9 @@ void ButtonScan(void)
   }
 }
 
-BUTTON_T GetButton_status()
+void GetButton_status(BUTTON_T* btn)
 {
-	return button;
+	memcpy((void*)btn,(void *)&button,sizeof(BUTTON_T));
 }
 
 

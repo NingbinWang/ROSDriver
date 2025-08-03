@@ -52,6 +52,8 @@ osThreadId IMUTaskHandle;
 osThreadId ShowTaskHandle;
 osThreadId ControlTaskHandle;
 osThreadId DataTaskHandle;
+osMutexId MotorMutexHandle;
+osSemaphoreId WifiSemHandle;
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -91,10 +93,19 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 	App_Init();
   /* USER CODE END Init */
+  /* Create the mutex(es) */
+  /* definition and creation of MotorMutex */
+  osMutexDef(MotorMutex);
+  MotorMutexHandle = osMutexCreate(osMutex(MotorMutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
+
+  /* Create the semaphores(s) */
+  /* definition and creation of WifiSem */
+  osSemaphoreDef(WifiSem);
+  WifiSemHandle = osSemaphoreCreate(osSemaphore(WifiSem), 1);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */

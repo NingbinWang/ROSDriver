@@ -19,12 +19,7 @@
 
 
 #include <stdint.h>
-#include "global.h"
 
-
-
-#define ENABLE_ALL_IRQ()    __enable_irq()     /* disable all interrupt */
-#define DISABLE_ALL_IRQ()   __disable_irq()    /* enable all interrupt */
 
 
 extern uint8_t queue_init(uint16_t *Front, uint16_t *Rear, uint8_t *PBase, uint16_t Len);
@@ -98,6 +93,9 @@ __packed typedef struct queue2048 {
     uint8_t     PBase[2048 + 1];
 } QUEUE2048_S;
 
+
+#define TRUE 1
+#define FALSE 0
 #endif
 #endif /* __SYS_QUEUE_H */
 

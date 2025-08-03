@@ -32,7 +32,6 @@ uint8_t queue_init(uint16_t *Front, uint16_t *Rear, uint8_t *PBase, uint16_t Len
     return TRUE;
 }
 
-W
 /**
  * @brief  queue_full
  * @param  Front , Rear , PBase , Len
