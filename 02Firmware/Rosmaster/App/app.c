@@ -16,6 +16,10 @@
 #include "sys_commandline.h"
 #include "esp8266.h"
 #include "wifiapp.h"
+#include "led.h"
+
+//#define APP_TR()
+unsigned int debug_level = 0;
 
 bool wifion = false;
 MPU6050_t mpu6050data;
@@ -194,6 +198,53 @@ void SetMotorVoltage()//设置电机电压和方向
 }
 
 
+void SetAnglePid(float Kp,float Ki,float Kd)
+{
+	gAngleKp = Kp;
+	gAngleKd = Kd;
+}
+
+float GetAngleKp()
+{
+	return gAngleKp ;
+}
+
+float GetAngleKd()
+{
+	return gAngleKd ;
+}
+
+float GetSpeedKp(void)
+{
+	return gSpeedKp;
+}
+
+float GetSpeedKi(void)
+{
+	return gSpeedKi;
+}
+
+
+
+void SetSpeedPid(float Kp,float Ki,float Kd)
+{
+	gSpeedKp = Kp;
+	gSpeedKi = Ki;
+}
+
+
+
+
+void SetDebugLevel(uint8_t level)
+{
+   debug_level = level;
+}
+
+uint8_t GetDebugLevel()
+{
+   return debug_level;
+}
+
 
 
 void App_Balance_Init()
@@ -220,7 +271,7 @@ void App_Balance_Task()
 	}
     //电机执行动作
 	SetMotorVoltage();
-
+	//GREEN_LEDSET();
 }
 
 
@@ -241,7 +292,7 @@ void App_IMU_Task()
 	  MPU6050_Read_All(MPU6050_I2C_PORT,&mpu6050data);
 	  //data.KalmanAngleX为roll
 	  //data.KalmanAngleY为ptich
-	  //printf("@%f %f %f %f %f %f %f %f\r\n",data.Ax,data.Ay,data.Az,data.Gx,data.Gy,data.Gz,data.KalmanAngleX,data.KalmanAngleY);
+	  APP_WAR("@%f %f %f %f %f %f %f %f\r\n",mpu6050data.Ax,mpu6050data.Ay,mpu6050data.Az,mpu6050data.Gx,mpu6050data.Gy,mpu6050data.Gz,mpu6050data.KalmanAngleX,mpu6050data.KalmanAngleY);
 	  gfCarAngle = mpu6050data.KalmanAngleY;
 	  gfGyroAngleSpeed = mpu6050data.Gx;
 
@@ -256,24 +307,57 @@ void App_Show_Init()
 #if SYS_COMMANDLINE_ENABLE
 	CLI_INIT();
 #endif
-
+#if POWER_ADC_ENABLE
+	Power_ADCInit();
+#endif
 
 }
+uint8_t OLED = 0;
+typedef enum{
+	OLED_Main = 0,
+	OLED_PID = 1,
+	OLED_MAX,
 
+}OLED_MENU_E;
 void App_Show_Task()
 {
 #if SSD1306_ENABLE
 	char showcount[256];
 	ssd1306_Fill(Black);
-	ssd1306_SetCursor(0,0);
-	sprintf(showcount,"speed %d %d ",gAMotorencoderPulse,gBMotorencoderPulse);
-	ssd1306_WriteString(showcount,Font_7x10,White);
-	ssd1306_SetCursor(0,Font_7x10.FontHeight);
-	sprintf(showcount,"Car:%2f ",gfCarAngle);
-	ssd1306_WriteString(showcount,Font_7x10,White);
-	ssd1306_SetCursor(0,2*Font_7x10.FontHeight);
-	sprintf(showcount,"pwm:%d %d",gAMotorPwm,gBMotorPwm);
-	ssd1306_WriteString(showcount,Font_7x10,White);
+	switch (OLED)
+	{
+		case OLED_Main:
+			//--------------------
+			ssd1306_SetCursor(0,0);
+			sprintf(showcount,"SP: %d %d",gAMotorencoderPulse,gBMotorencoderPulse);
+			ssd1306_WriteString(showcount,Font_7x10,White);
+			//--------------------
+			ssd1306_SetCursor(0,Font_7x10.FontHeight);
+			sprintf(showcount,"CA:%.2f ",gfCarAngle);
+			ssd1306_WriteString(showcount,Font_7x10,White);
+			//--------------------
+			ssd1306_SetCursor(0,2*Font_7x10.FontHeight);
+			sprintf(showcount,"PWM:%d %d",gAMotorPwm,gBMotorPwm);
+			ssd1306_WriteString(showcount,Font_7x10,White);
+			//--------------------
+			break;
+		case OLED_PID:
+			//--------------------
+			ssd1306_SetCursor(0,0);
+			sprintf(showcount,"APID: p:%.4f d:%.4f",gAngleKp,gAngleKd);
+			ssd1306_WriteString(showcount,Font_7x10,White);
+			//--------------------
+			ssd1306_SetCursor(0,Font_7x10.FontHeight);
+			sprintf(showcount,"SPID: p:%.4f i:%.4f",gSpeedKp,gSpeedKi);
+			ssd1306_WriteString(showcount,Font_7x10,White);
+			//--------------------
+#if POWER_ADC_ENABLE
+			ssd1306_SetCursor(0,2*Font_7x10.FontHeight);
+			sprintf(showcount,"PWR:%d",Power_get_value());
+			ssd1306_WriteString(showcount,Font_7x10,White);
+#endif
+			break;
+	}
 	ssd1306_UpdateScreen();
 #endif
 #if SYS_COMMANDLINE_ENABLE
@@ -285,9 +369,9 @@ void App_Show_Task()
 
 void App_Control_Init()
 {
-	wifion = Wifi_AppInit("xxxx","xxxx");//请修改成自己的WIFI的ssid与密码
+	wifion = Wifi_AppInit("xxxxx","xxxxx");//请修改成自己的WIFI的ssid与密码
 	if(wifion == false)
-		printf("wifi can't connect\r\n");
+		APP_ERR("wifi can't connect\r\n");
 }
 
 void App_Control_Task()
@@ -295,6 +379,12 @@ void App_Control_Task()
 	
 	BUTTON_T btn;
 	GetButton_status(&btn);
+	if(btn.key1 == 1)
+	{
+	   OLED++;
+	   if(OLED >=OLED_MAX)
+	   	OLED = 0;
+	}
 }
 
 

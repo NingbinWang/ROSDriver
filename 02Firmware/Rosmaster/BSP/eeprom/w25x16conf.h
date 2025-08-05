@@ -7,8 +7,11 @@
 #include "spi.h"
 #include "gpio.h"
 
-#define	SPI_FLASH_CS_0      HAL_GPIO_WritePin(flash_cs_GPIO_Port, flash_cs_Pin, GPIO_PIN_RESET)
-#define SPI_FLASH_CS_1      HAL_GPIO_WritePin(flash_cs_GPIO_Port, flash_cs_Pin, GPIO_PIN_SET)
+#define SPI_FLASH_CS_GPIO_PORT GPIOE
+#define SPI_FLASH_CS_GPIO_PIN 15
+
+#define	SPI_FLASH_CS_0      HAL_GPIO_WritePin(SPI_FLASH_CS_GPIO_PORT, SPI_FLASH_CS_GPIO_PIN, GPIO_PIN_RESET)
+#define SPI_FLASH_CS_1      HAL_GPIO_WritePin(SPI_FLASH_CS_GPIO_PORT, SPI_FLASH_CS_GPIO_PIN, GPIO_PIN_SET)
 
 #define W25X16hspi &hspi1
 

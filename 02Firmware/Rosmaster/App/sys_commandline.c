@@ -14,15 +14,15 @@
   */
 #include "config.h"
 #if SYS_COMMANDLINE_ENABLE
-
+#include "app.h"
 
 #include "sys_commandline.h"
 
 static uint8_t cli_help(void *para, uint8_t len);
 static uint8_t cli_clear(void *para, uint8_t len);
-static uint8_t cli_echo(void *para, uint8_t len);
-static uint8_t cli_reboot(void *para, uint8_t len);
-
+static uint8_t cli_debug(void *para, uint8_t len);
+static uint8_t cli_Anglepid(void *para, uint8_t len);
+static uint8_t cli_Speedpid(void *para, uint8_t len);
 
 __packed typedef struct {
 #define HANDLE_LEN 128
@@ -50,10 +50,23 @@ const char CLI_Cmd_Clear[] =
     " * clear the screen\r\n"
     "\r\n";
 
-const char CLI_Cmd_Echo[] =
-    "[echo]\r\n"
-    " * echo 1: echo on\r\n"
-    " * echo 0: echo off\r\n"
+
+const char CLI_Cmd_Debug[] =
+    "[debug]\r\n"
+    " * debug 0: printf off\r\n"
+    " * debug 1: printf err\r\n"
+    " * debug 2: printf warning\r\n"
+    " * debug 3: printf info\r\n"
+    "\r\n";
+
+const char CLI_Cmd_Anglepid[] =
+    "[Anglepid]\r\n"
+    " * Anglepid x x : Kp Kd \r\n"
+    "\r\n";
+
+const char CLI_Cmd_Speedpid[] =
+    "[Speedpid]\r\n"
+    " * Speedpid x x : Kp Ki \r\n"
     "\r\n";
 
 
@@ -64,7 +77,9 @@ const COMMAND_S CLI_Cmd[] = {
     /* cmd              cmd help            init func.      func. */
     {"help",            CLI_Cmd_Help,       NULL,           cli_help},
     {"cls",             CLI_Cmd_Clear,      NULL,           cli_clear},
-    {"echo",            CLI_Cmd_Echo,       NULL,           cli_echo},
+    {"debug",			CLI_Cmd_Debug,		NULL,			cli_debug},
+    {"Anglepid",		CLI_Cmd_Anglepid,	NULL,			cli_Anglepid},
+    {"Speedpid",		CLI_Cmd_Speedpid,	NULL,			cli_Speedpid},
 };
 
 
@@ -109,36 +124,63 @@ static uint8_t cli_clear(void *para, uint8_t len)
 }
 
 
-/**
-  * @brief  ECHO setting
-  * @param  para addr. & length
-  * @retval True means OK
-  */
-static uint8_t cli_echo(void *para, uint8_t len)
+
+static uint8_t cli_debug(void *para, uint8_t len)
 {
     uint8_t *pTemp;
     pTemp = (uint8_t *)para;
-
+	int val;
+	PRINTF("\r\ncurret debug_level %d\r\n",GetDebugLevel());
     if((0 < len) && (NULL != pTemp)) {
         pTemp++; /* skip a blank space*/
-
-        if('1' == *pTemp) {
-            /* ECHO on */
-            cli_echo_flag = ENABLE;
-            PRINTF("echo on\r\n");
-        } else if('0' == *pTemp) {
-            /* ECHO off */
-            cli_echo_flag = DISABLE;
-            PRINTF("echo off\r\n");
+		val = atoi(pTemp);
+        if(val>=0 && val <=3){
+			SetDebugLevel(val);
         } else {
             /* wrong para, return False */
             return FALSE;
         }
     }
-
+    PRINTF("\r\nsetdebug %d\r\n",val);
     return TRUE;
 }
 
+static uint8_t cli_Anglepid(void *para, uint8_t len)
+{
+	 char *token;
+	 char *buffer = strdup((char*)para);
+	 int count = 0;
+	 float output[2];
+	 PRINTF("\r\ncurret Anglepid Kp = %f Kd = %f\r\n",GetAngleKp(),GetAngleKd());
+	 token = strtok(buffer, " ");
+     while (token != NULL && count < 3) {
+        output[count++] = atof(token);
+        token = strtok(NULL, " ");
+     }
+     free(buffer);
+	 SetAnglePid((float)output[0],0,(float)output[1]);
+	 PRINTF("\r\nnow Anglepid Kp = %f Kd = %f\r\n",GetAngleKp(),GetAngleKd());
+	 return TRUE;
+
+}
+
+static uint8_t cli_Speedpid(void *para, uint8_t len)
+{
+	 char *token;
+	 char *buffer = strdup((char*)para);
+	 int count = 0;
+	 float output[2];
+	 PRINTF("\r\ncurret Speedpid Kp = %f Ki = %f\r\n",GetSpeedKp(),GetSpeedKi());
+	 token = strtok(buffer, " ");
+     while (token != NULL && count < 3) {
+        output[count++] = atof(token);
+        token = strtok(NULL, " ");
+     }
+     free(buffer);
+	 SetSpeedPid((float)output[0],(float)output[1],0);
+	 PRINTF("\r\nnow Speedpid Kp = %f Ki = %f\r\n",GetSpeedKp(),GetSpeedKi());
+	 return TRUE;
+}
 
 
 

@@ -29,12 +29,19 @@ bool ANO_Protocol_SendPacket(uint8_t *pbuf, uint8_t len,const ANTO_MODE_E mode)
    databuf[5+len] = addcheck;
 #if ANOT_TRANSF_ESP8266
    ret = esp8266_TcpIp_SendDataUdp(0,len+6,(uint8_t*)databuf);
+#elif ANOT_TRANSF_UART
+  if(HAL_UART_Transmit(ANOProtocolUart,(uint8_t *)databuf,len+6,0xffff) != HAL_OK)
+	{
+		 Error_Handler();
+		 ret = FALSE;
+	}
+   ret  = TRUE;	 
 #endif
    return ret;
 
 }
 
-int ANTO_Recive(const ANTO_MODE_E mode,int sockfd)
+int ANO_Protocol_RecivePacket(uint8_t *pbuf, uint8_t len)
 {
     return 0;
 }

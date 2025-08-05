@@ -3,14 +3,17 @@
 
 #include "config.h"
 #include <stdint.h>
+#include <stdbool.h>
+#include "esp8266.h"
 #if ANOT_PROTOCOL_ENABLE
 #define ANOT_TRANSF_UART 0
+#if ESP8266_ENBALE
 #define ANOT_TRANSF_ESP8266 1
-
+#endif
 
 #if  ANOT_TRANSF_UART
-#define ANOProtocolUart &huart1
-#define ANOProtocolUartBus USART1
+#define ANOProtocolUart &huart3
+#define ANOProtocolUartBus USART3
 #else if ANOT_TRANSF_ESP8266
 #include "esp8266.h"
 #endif

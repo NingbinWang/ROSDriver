@@ -7,10 +7,8 @@
 u8 const TX_ADDRESS[TX_ADR_WIDTH]= {0x34,0x43,0x10,0x10,0x01};	//本地地址
 u8 const RX_ADDRESS[RX_ADR_WIDTH]= {0x34,0x43,0x10,0x10,0x01};	//接收地址
 
-
-
-
 //初始化NRF IO配置
+/*
 void NRF_IO_Init(void)
 {
   	GPIO_InitTypeDef GPIO_InitStructure;
@@ -53,21 +51,29 @@ void NRF_IO_Init(void)
 		CEN=0; 			//使能24L01
 		CSN=1;			//SPI片选取消
 }
-
+*/
 
 
 
 
 //从NRF读取一个字节数据
 //reg 寄存器地址
-u8 SPI_Read(u8 reg)
+uint8_t SPI_Read(uint8_t reg)
 {
-	u8 reg_val;
-
-	CSN = 0;                //片选使能
-    SPI1_ReadWriteByte(reg);
-	reg_val = SPI1_ReadWriteByte(0xff);    // 读取数据到reg_val
-	CSN = 1;                // 取消片选
+	uint8_t reg_val;
+	HAL_StatusTypeDef ret;
+	NRF24L01_CS0;                //片选使能
+	ret = HAL_SPI_Transmit(NRF24L01_SPI, &reg,1, 0);   //发送读取ID命令
+	if(ret != HAL_OK )
+	{
+			printf("SPI_Read  REG : %X error \r\n",reg);
+	}
+	ret = HAL_SPI_Receive(NRF24L01_SPI,&reg_val,1,1000);
+	if(ret != HAL_OK )
+	{
+			printf("SPI_Read get reg_val error \r\n");
+	 }
+	NRF24L01_CS1;                // 取消片选
 
 	return(reg_val);        // 返回读取的数据
 }
@@ -76,12 +82,13 @@ u8 SPI_Read(u8 reg)
 
 //向NRF写入一个字节数据
 //reg 寄存器地址  value 要写入的数据
-u8 SPI_RW_Reg(u8 reg, u8 value)
+u8 SPI_RW_Reg(uint8_t reg, uint8_t value)
 {
-	u8 status;
+	uint8_t status;
+	HAL_StatusTypeDef ret;
+	NRF24L01_CS0;                //片选使能
 
-	CSN = 0;                   // CSN low, init SPI transaction
-	status = SPI1_ReadWriteByte(reg);
+	status = SPI_Read(reg);
     SPI1_ReadWriteByte(value);
 	CSN = 1;                   // CSN high again
 
@@ -129,9 +136,9 @@ u8 SPI_Write_Buf(u8 reg, u8 *pBuf, u8 uchars)
 //返回值:0，成功;1，失败
 u8 NRF24L01_Check(void)
 {
-	u8 buf[5]={0XA5,0XA5,0XA5,0XA5,0XA5};
-	u8 i;
-    SPI1_SetSpeed(SPI_BaudRatePrescaler_8);       //spi速度为9Mhz（24L01的最大SPI时钟为10Mhz）
+	uint8_t buf[5]={0XA5,0XA5,0XA5,0XA5,0XA5};
+	uint8_t i;
+   // SPI1_SetSpeed(SPI_BaudRatePrescaler_8);       //spi速度为9Mhz（24L01的最大SPI时钟为10Mhz）
 	SPI_Write_Buf(WRITE_REG_NRF+TX_ADDR,buf,5);   //写入5个字节的地址.
 	SPI_Read_Buf(TX_ADDR,buf,5); //读出写入的地址
 	for(i=0;i<5;i++)if(buf[i]!=0XA5)break;

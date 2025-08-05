@@ -8,7 +8,7 @@
 #ifndef _POWER_CONF_H_
 #define	_POWER_CONF_H_
 
-#define POWER_ADC_ENABLE 1
+#define POWER_ADC_ENABLE 0
 #include "adc.h"
 #if POWER_ADC_ENABLE
 
